@@ -1,0 +1,917 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜商店街八角形抽獎機</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --pink:#f3b5c9;
+  --deep:#d77f9e;
+  --light:#ffe8ef;
+  --dark:#684653;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,"Noto Sans TC",sans-serif;
+  background:radial-gradient(circle at 50% 35%,#fffafd,#ffe8ef 65%,#f8d8e3);
+  color:var(--dark);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  user-select:none;
+}
+
+#game{
+  width:100%;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:20px 10px;
+  transition:opacity .45s,transform .6s;
+}
+
+.machine{
+  position:relative;
+  width:min(720px,96vw);
+  height:420px;
+}
+
+/* 底座 */
+
+.machine-shadow{
+  position:absolute;
+  width:75%;
+  height:35px;
+  left:12%;
+  bottom:12px;
+  background:#bd8297;
+  opacity:.2;
+  filter:blur(15px);
+  border-radius:50%;
+}
+
+.base{
+  position:absolute;
+  width:76%;
+  height:27px;
+  left:12%;
+  bottom:18px;
+  background:linear-gradient(#f9d2df,#d88ca8);
+  border-radius:18px;
+  box-shadow:0 7px 0 #bd748f,0 12px 16px #c58ba0;
+}
+
+.support{
+  position:absolute;
+  width:19px;
+  height:115px;
+  top:67%;
+  background:linear-gradient(90deg,#b96e8b,#f8c9d9,#c77b99);
+  border-radius:9px;
+  z-index:1;
+}
+
+.support.left{left:25%}
+.support.right{right:25%}
+
+/* 八角形箱體 */
+
+.drum{
+  position:absolute;
+  width:min(390px,65vw);
+  height:290px;
+  left:50%;
+  top:43%;
+  transform:translate(-50%,-50%);
+  transform-origin:center;
+  z-index:3;
+}
+
+.drum-side{
+  position:absolute;
+  width:62px;
+  height:84%;
+  right:-35px;
+  top:8%;
+  background:linear-gradient(90deg,#bd718f,#a95578);
+  clip-path:polygon(
+    0 8%,45% 0,100% 14%,100% 86%,
+    45% 100%,0 92%
+  );
+  filter:drop-shadow(5px 8px 5px rgba(100,50,70,.2));
+  z-index:-1;
+}
+
+.drum-body{
+  position:absolute;
+  inset:0;
+  clip-path:polygon(
+    18% 0,82% 0,100% 22%,100% 78%,
+    82% 100%,18% 100%,0 78%,0 22%
+  );
+  background:linear-gradient(145deg,#e9a9bf,#cf7798 48%,#b96183);
+  filter:drop-shadow(0 12px 0 #a95778)
+         drop-shadow(0 18px 13px rgba(120,65,85,.22));
+}
+
+.drum-face{
+  position:absolute;
+  inset:10px;
+  clip-path:polygon(
+    18% 0,82% 0,100% 22%,100% 78%,
+    82% 100%,18% 100%,0 78%,0 22%
+  );
+  background:linear-gradient(145deg,#f7cfdd,#e6a8bf 48%,#d989a8);
+  overflow:hidden;
+}
+
+.drum-face::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 44px,
+    rgba(157,82,112,.12) 45px,
+    transparent 48px
+  );
+}
+
+.drum-face::after{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border:2px solid rgba(255,255,255,.55);
+  clip-path:polygon(
+    18% 0,82% 0,100% 22%,100% 78%,
+    82% 100%,18% 100%,0 78%,0 22%
+  );
+}
+
+.face-decoration{
+  position:absolute;
+  width:12px;
+  height:12px;
+  background:#fff0b8;
+  border:2px solid #fff;
+  border-radius:50%;
+  box-shadow:0 2px 4px rgba(100,50,70,.15);
+  z-index:2;
+}
+
+.deco1{top:20%;left:22%}
+.deco2{top:20%;right:22%}
+.deco3{bottom:20%;left:22%}
+.deco4{bottom:20%;right:22%}
+
+.top-decoration{
+  position:absolute;
+  width:60%;
+  height:10px;
+  left:20%;
+  top:-9px;
+  border-radius:10px;
+  background:linear-gradient(#fff4f8,#c77999);
+  z-index:5;
+}
+
+/* 箱體側面曲柄 */
+
+.handle-area{
+  position:absolute;
+  width:150px;
+  height:150px;
+  left:calc(100% - 40px);
+  top:24%;
+  z-index:12;
+  touch-action:none;
+  cursor:grab;
+}
+
+.handle-area:active{cursor:grabbing}
+
+.handle-mount{
+  position:absolute;
+  width:58px;
+  height:58px;
+  left:0;
+  top:46px;
+  border-radius:50%;
+  background:linear-gradient(145deg,#f8e4eb,#b86b89);
+  border:6px solid #fff0f5;
+  box-shadow:
+    inset 0 0 0 3px #d18ba5,
+    0 4px 8px rgba(100,50,70,.3);
+  z-index:1;
+}
+
+.handle-rotor{
+  position:absolute;
+  width:150px;
+  height:150px;
+  left:0;
+  top:0;
+  transform-origin:29px 75px;
+}
+
+.handle-arm{
+  position:absolute;
+  width:91px;
+  height:15px;
+  left:29px;
+  top:68px;
+  border-radius:8px;
+  background:linear-gradient(
+    180deg,
+    #fff5f8 0%,
+    #e9a9bf 35%,
+    #b96b89 100%
+  );
+  border:2px solid #fff0f5;
+  box-shadow:0 3px 5px rgba(80,40,60,.25);
+  transform-origin:7px 50%;
+  z-index:3;
+}
+
+.handle-grip{
+  position:absolute;
+  width:23px;
+  height:52px;
+  left:108px;
+  top:49px;
+  border-radius:13px;
+  background:linear-gradient(
+    90deg,
+    #ad5e7d,
+    #f8d5e1 45%,
+    #bd718f
+  );
+  border:3px solid #fff0f5;
+  box-shadow:0 4px 7px rgba(80,40,60,.25);
+  transform:rotate(90deg);
+  z-index:4;
+}
+
+.handle-center{
+  position:absolute;
+  width:27px;
+  height:27px;
+  left:15px;
+  top:61px;
+  border-radius:50%;
+  background:radial-gradient(circle at 30% 25%,#fff,#e6a9c0 60%,#ad5d7c);
+  border:3px solid white;
+  box-shadow:0 2px 5px rgba(80,40,60,.25);
+  z-index:5;
+}
+
+/* 出球口 */
+
+.exit-neck{
+  position:absolute;
+  width:54px;
+  height:36px;
+  left:50%;
+  top:69%;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,#b96887,#f8d1df,#bd718f);
+  border:4px solid #fff0f5;
+  border-radius:8px 8px 14px 14px;
+  z-index:4;
+}
+
+.exit-hole{
+  position:absolute;
+  width:29px;
+  height:14px;
+  left:50%;
+  bottom:0;
+  transform:translateX(-50%);
+  border-radius:50% 50% 5px 5px;
+  background:#75475a;
+  border:3px solid #eab2c7;
+}
+
+/* 接球盤 */
+
+.catch-tray{
+  position:absolute;
+  width:100px;
+  height:28px;
+  left:50%;
+  top:80%;
+  transform:translateX(-50%);
+  background:linear-gradient(#fff1f6,#d98ca9);
+  border:4px solid #fff;
+  border-radius:10px 10px 24px 24px;
+  box-shadow:0 5px 8px rgba(110,60,80,.2);
+  z-index:5;
+}
+
+.catch-ball{
+  position:absolute;
+  width:23px;
+  height:23px;
+  left:50%;
+  top:-20px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  box-shadow:
+    inset -4px -5px 6px rgba(0,0,0,.15),
+    inset 3px 3px 5px white;
+  z-index:6;
+  opacity:0;
+  pointer-events:none;
+}
+
+.catch-ball.drop{
+  animation:ballDrop .85s ease-in-out forwards;
+}
+
+@keyframes ballDrop{
+  0%{
+    top:-190px;
+    opacity:0;
+    transform:translateX(-50%) scale(.65);
+  }
+  35%{
+    top:-110px;
+    opacity:1;
+    transform:translateX(-50%) scale(.85);
+  }
+  65%{
+    top:-35px;
+    transform:translateX(-50%) scale(1);
+  }
+  82%{
+    top:-45px;
+  }
+  100%{
+    top:-20px;
+    opacity:1;
+    transform:translateX(-50%) scale(1);
+  }
+}
+
+/* 十種球色 */
+
+.gold{background:radial-gradient(circle at 30% 25%,#fff4b7,#e7ae36 70%,#b97c18)}
+.pink{background:radial-gradient(circle at 30% 25%,#fff0f5,#f3a3c0 70%,#d56b91)}
+.purple{background:radial-gradient(circle at 30% 25%,#f5edff,#bca3e9 70%,#8e76c6)}
+.green{background:radial-gradient(circle at 30% 25%,#effff5,#9cddbc 70%,#60b18b)}
+.blue{background:radial-gradient(circle at 30% 25%,#f0faff,#91cce8 70%,#5b9ec6)}
+.orange{background:radial-gradient(circle at 30% 25%,#fff1df,#f2b47e 70%,#d8874c)}
+.red{background:radial-gradient(circle at 30% 25%,#fff0ef,#ed9999 70%,#c96770)}
+.mint{background:radial-gradient(circle at 30% 25%,#effffb,#8ed8cb 70%,#54aa9e)}
+.lavender{background:radial-gradient(circle at 30% 25%,#fff2ff,#d6a8dc 70%,#a879b6)}
+.lemon{background:radial-gradient(circle at 30% 25%,#ffffe8,#d7d77c 70%,#a8a84b)}
+
+/* 抽出球後的斜俯視鏡頭 */
+
+.result-view{
+  position:fixed;
+  inset:0;
+  z-index:30;
+  display:none;
+  overflow:hidden;
+  cursor:pointer;
+  background:
+    radial-gradient(circle at 50% 65%,#fffafd,#ffeaf1 65%,#edc4d3);
+}
+
+.result-view.show{
+  display:block;
+  animation:cameraIn .6s ease-out forwards;
+}
+
+@keyframes cameraIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+
+/* 畫面上方保留抽獎機的一部分 */
+
+.camera-machine{
+  position:absolute;
+  top:-100px;
+  left:50%;
+  width:min(560px,110vw);
+  height:260px;
+  transform:translateX(-50%) rotateX(-12deg);
+  transform-origin:top center;
+  z-index:2;
+}
+
+.camera-drum-edge{
+  position:absolute;
+  left:8%;
+  top:0;
+  width:84%;
+  height:150px;
+  background:linear-gradient(160deg,#e9a9bf,#bd718f);
+  clip-path:polygon(
+    15% 0,85% 0,100% 25%,94% 100%,
+    6% 100%,0 25%
+  );
+  border-bottom:10px solid #a95778;
+  filter:drop-shadow(0 10px 10px rgba(100,50,70,.2));
+}
+
+.camera-exit{
+  position:absolute;
+  width:78px;
+  height:64px;
+  left:50%;
+  top:118px;
+  transform:translateX(-50%);
+  background:linear-gradient(90deg,#b96887,#f8d1df,#bd718f);
+  border:5px solid #fff0f5;
+  border-radius:8px 8px 17px 17px;
+  box-shadow:0 8px 12px rgba(100,50,70,.2);
+}
+
+.camera-exit::after{
+  content:"";
+  position:absolute;
+  width:42px;
+  height:18px;
+  left:50%;
+  bottom:-5px;
+  transform:translateX(-50%);
+  background:#75475a;
+  border:4px solid #eab2c7;
+  border-radius:50%;
+}
+
+.camera-tray{
+  position:absolute;
+  width:170px;
+  height:30px;
+  top:183px;
+  left:50%;
+  transform:translateX(-50%);
+  background:linear-gradient(#fff1f6,#d98ca9);
+  border:5px solid white;
+  border-radius:10px 10px 30px 30px;
+  box-shadow:0 7px 12px rgba(110,60,80,.2);
+}
+
+/* 結果球體 */
+
+.result-scene{
+  position:absolute;
+  width:100%;
+  height:100%;
+}
+
+.result-orb{
+  position:absolute;
+  top:53%;
+  left:50%;
+  width:min(270px,65vw);
+  aspect-ratio:1;
+  border-radius:50%;
+  border:7px solid rgba(255,255,255,.9);
+  box-shadow:
+    inset -18px -22px 28px rgba(70,40,50,.2),
+    inset 13px 13px 24px rgba(255,255,255,.85),
+    0 25px 55px rgba(120,70,90,.25);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform:translate(-50%,-50%) scale(.3);
+  animation:orbZoom .7s cubic-bezier(.2,.8,.3,1) forwards;
+  overflow:hidden;
+}
+
+@keyframes orbZoom{
+  0%{transform:translate(-50%,-50%) scale(.3)}
+  70%{transform:translate(-50%,-50%) scale(1.08)}
+  100%{transform:translate(-50%,-50%) scale(1)}
+}
+
+.result-orb::before{
+  content:"";
+  position:absolute;
+  width:42%;
+  height:23%;
+  left:15%;
+  top:11%;
+  border-radius:50%;
+  background:rgba(255,255,255,.42);
+  filter:blur(13px);
+  transform:rotate(-35deg);
+}
+
+.result-orb-text{
+  position:relative;
+  z-index:2;
+  width:80%;
+  text-align:center;
+  color:rgba(90,53,65,.85);
+  font-size:clamp(25px,6vw,38px);
+  font-weight:bold;
+  letter-spacing:3px;
+  opacity:0;
+  transform:scale(.8);
+  text-shadow:0 1px 2px rgba(255,255,255,.7);
+}
+
+.result-orb-text.reveal{
+  animation:textReveal 1s ease-out forwards;
+}
+
+@keyframes textReveal{
+  0%{opacity:0;transform:scale(.8);filter:blur(8px)}
+  100%{opacity:1;transform:scale(1);filter:blur(0)}
+}
+
+/* 結果視角隱藏原始頁面 */
+
+body.resulting #game{
+  opacity:0;
+  transform:scale(.9);
+  pointer-events:none;
+}
+
+/* 手機版 */
+
+@media(max-width:550px){
+  .machine{height:350px}
+  .drum{width:70vw;height:240px}
+
+  .handle-area{
+    left:calc(100% - 38px);
+    top:20%;
+    transform:scale(.78);
+    transform-origin:left center;
+  }
+
+  .support{top:67%}
+  .catch-tray{top:82%}
+
+  .camera-machine{
+    top:-80px;
+    width:115vw;
+  }
+
+  .result-orb{
+    top:55%;
+    width:min(230px,65vw);
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+  <div class="machine">
+
+    <div class="machine-shadow"></div>
+
+    <div class="support left"></div>
+    <div class="support right"></div>
+    <div class="base"></div>
+
+    <div class="drum" id="drum">
+
+      <div class="drum-side"></div>
+
+      <div class="drum-body">
+        <div class="drum-face">
+          <div class="face-decoration deco1"></div>
+          <div class="face-decoration deco2"></div>
+          <div class="face-decoration deco3"></div>
+          <div class="face-decoration deco4"></div>
+        </div>
+      </div>
+
+      <div class="top-decoration"></div>
+
+      <div class="handle-area" id="handleArea">
+        <div class="handle-mount"></div>
+
+        <div class="handle-rotor" id="handleRotor">
+          <div class="handle-arm"></div>
+          <div class="handle-grip"></div>
+          <div class="handle-center"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="exit-neck">
+      <div class="exit-hole"></div>
+    </div>
+
+    <div class="catch-tray">
+      <div class="catch-ball" id="catchBall"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 抽出球後的斜俯視畫面 -->
+
+<div class="result-view" id="resultView">
+
+  <div class="camera-machine">
+    <div class="camera-drum-edge"></div>
+    <div class="camera-exit"></div>
+    <div class="camera-tray"></div>
+  </div>
+
+  <div class="result-scene">
+    <div class="result-orb" id="resultOrb">
+      <div class="result-orb-text" id="resultText"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const drum=document.getElementById("drum");
+const handleArea=document.getElementById("handleArea");
+const handleRotor=document.getElementById("handleRotor");
+const catchBall=document.getElementById("catchBall");
+
+const resultView=document.getElementById("resultView");
+const resultOrb=document.getElementById("resultOrb");
+const resultText=document.getElementById("resultText");
+
+/* 選項設定 */
+
+const options=[
+  {option:"選項一",css:"gold",level:"SSR｜最高級",count:1},
+  {option:"選項二",css:"pink",level:"SR｜高級",count:2},
+  {option:"選項三",css:"purple",level:"R｜中級",count:2},
+  {option:"選項四",css:"green",level:"N｜中級",count:3},
+  {option:"選項五",css:"blue",level:"B｜中級",count:3},
+  {option:"選項六",css:"orange",level:"B｜中級",count:4},
+  {option:"選項七",css:"red",level:"B｜中級",count:4},
+  {option:"選項八",css:"mint",level:"B｜基本",count:5},
+  {option:"選項九",css:"lavender",level:"B｜基本",count:5},
+  {option:"選項十",css:"lemon",level:"B｜基本",count:5}
+];
+
+let started=false;
+let spinning=false;
+let dragging=false;
+let speed=0;
+let angle=0;
+let lastPointerAngle=0;
+let lastTime=0;
+let resultTimer=null;
+let selected=null;
+let lastFrame=0;
+
+/* 計算曲柄旋轉角度 */
+
+function pointerAngle(e){
+
+  const rect=handleArea.getBoundingClientRect();
+
+  const centerX=rect.left+rect.width*(29/150);
+  const centerY=rect.top+rect.height/2;
+
+  return Math.atan2(
+    e.clientY-centerY,
+    e.clientX-centerX
+  );
+}
+
+/* 開始抽獎 */
+
+function beginSpin(){
+
+  if(started || resultView.classList.contains("show"))return;
+
+  started=true;
+  spinning=true;
+  speed=2;
+  lastFrame=performance.now();
+}
+
+/* 按下曲柄 */
+
+function handleDown(e){
+
+  if(resultView.classList.contains("show"))return;
+
+  e.preventDefault();
+
+  if(!started)beginSpin();
+
+  if(!spinning)return;
+
+  dragging=true;
+
+  handleArea.setPointerCapture(e.pointerId);
+
+  lastPointerAngle=pointerAngle(e);
+  lastTime=performance.now();
+
+  if(speed<1.2)speed=1.2;
+}
+
+/* 拖曳曲柄 */
+
+function handleMove(e){
+
+  if(!dragging || !spinning)return;
+
+  e.preventDefault();
+
+  const currentAngle=pointerAngle(e);
+  const now=performance.now();
+
+  let delta=currentAngle-lastPointerAngle;
+
+  if(delta>Math.PI)delta-=Math.PI*2;
+  if(delta< -Math.PI)delta+=Math.PI*2;
+
+  const dt=Math.max(1,now-lastTime);
+  const angularSpeed=Math.abs(delta)/dt;
+
+  speed=Math.min(5,Math.max(1.2,speed+angularSpeed*1.8));
+
+  angle+=delta*180/Math.PI;
+
+  handleRotor.style.transform=`rotate(${angle}deg)`;
+
+  lastPointerAngle=currentAngle;
+  lastTime=now;
+}
+
+/* 放開曲柄 */
+
+function handleUp(){
+
+  if(!dragging)return;
+
+  dragging=false;
+}
+
+/* 箱體與曲柄動畫 */
+
+function animate(now){
+
+  if(!lastFrame)lastFrame=now;
+
+  const dt=Math.min(now-lastFrame,40);
+  lastFrame=now;
+
+  if(spinning){
+
+    if(!dragging){
+
+      /* 依照實際時間減速 */
+
+      speed*=Math.pow(.985,dt/16.67);
+
+      angle+=speed*5*(dt/16.67);
+
+      handleRotor.style.transform=`rotate(${angle}deg)`;
+
+      drum.style.transform=
+        `translate(-50%,-50%) rotate(${Math.sin(angle*Math.PI/180)*1.5}deg)`;
+    }
+
+    /* 停止後自動掉球 */
+
+    if(!dragging && speed<.18){
+
+      speed=0;
+      spinning=false;
+
+      drum.style.transform="translate(-50%,-50%)";
+
+      resultTimer=setTimeout(dropBall,600);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+/* 依照球數量比例抽選 */
+
+function selectBall(){
+
+  const total=options.reduce((sum,item)=>sum+item.count,0);
+
+  let random=Math.random()*total;
+
+  for(const item of options){
+
+    random-=item.count;
+
+    if(random<0)return item;
+  }
+
+  return options[options.length-1];
+}
+
+/* 球體掉出 */
+
+function dropBall(){
+
+  if(dragging || spinning || selected)return;
+
+  selected=selectBall();
+
+  /* 清除舊動畫 */
+
+  catchBall.className="catch-ball";
+
+  void catchBall.offsetWidth;
+
+  /* 套用抽中球的顏色與掉落動畫 */
+
+  catchBall.className="catch-ball "+selected.css+" drop";
+
+  /* 等待球體掉落動畫結束 */
+
+  resultTimer=setTimeout(showResult,900);
+}
+
+/* 切換至球體近距離視角 */
+
+function showResult(){
+
+  if(!selected)return;
+
+  document.body.classList.add("resulting");
+
+  resultOrb.className="result-orb "+selected.css;
+
+  resultText.className="result-orb-text";
+  resultText.textContent=selected.option;
+
+  resultView.classList.add("show");
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      resultText.classList.add("reveal");
+    });
+  });
+}
+
+/* 點擊任意位置回到初始視角 */
+
+function resetGame(){
+
+  clearTimeout(resultTimer);
+
+  resultView.classList.remove("show");
+  document.body.classList.remove("resulting");
+
+  started=false;
+  spinning=false;
+  dragging=false;
+  speed=0;
+  angle=0;
+  selected=null;
+
+  drum.style.transform="translate(-50%,-50%)";
+  handleRotor.style.transform="rotate(0deg)";
+
+  catchBall.className="catch-ball";
+
+  resultOrb.className="result-orb";
+  resultText.className="result-orb-text";
+  resultText.textContent="";
+}
+
+/* 操作事件 */
+
+handleArea.addEventListener("pointerdown",handleDown);
+handleArea.addEventListener("pointermove",handleMove);
+handleArea.addEventListener("pointerup",handleUp);
+handleArea.addEventListener("pointercancel",handleUp);
+
+/* 結果畫面任意位置點擊，重新開始 */
+
+resultView.addEventListener("click",resetGame);
+
+/* 初始化 */
+
+requestAnimationFrame(animate);
+
+</script>
+
+</body>
+</html>

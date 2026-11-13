@@ -1,0 +1,346 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PickMe｜抽卡機教學</title>
+<link rel="stylesheet" href="../tool-transition.css">
+<script src="../tool-transition.js"></script>
+
+<link rel="stylesheet" href="card.css">
+</head>
+
+<body>
+
+<div class="machine" id="machine">
+
+    <div class="machine-top">
+
+        <div class="lights">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+        </div>
+
+        <!-- 男孩與女孩插畫 -->
+
+        <div class="art-illustrations">
+
+            <!-- 男孩 -->
+            <svg viewBox="0 0 120 120" aria-label="可愛男孩">
+
+                <!-- 身體 -->
+                <path d="M25 112 Q27 78 60 77 Q93 78 95 112Z"
+                      fill="#9CCFC5"
+                      stroke="#6BAE9F"
+                      stroke-width="3"/>
+
+                <!-- 脖子 -->
+                <path d="M49 73 L49 88 Q60 98 71 88 L71 73Z"
+                      fill="#FFD7BD"/>
+
+                <!-- 耳朵 -->
+                <ellipse cx="30" cy="55" rx="9" ry="12"
+                         fill="#FFD7BD"/>
+                <ellipse cx="90" cy="55" rx="9" ry="12"
+                         fill="#FFD7BD"/>
+
+                <!-- 頭部 -->
+                <ellipse cx="60" cy="54" rx="34" ry="39"
+                         fill="#FFE0C9"
+                         stroke="#D99A83"
+                         stroke-width="2.5"/>
+
+                <!-- 頭髮 -->
+                <path d="M27 49
+                         Q20 14 54 15
+                         Q83 5 94 34
+                         Q99 46 91 55
+                         Q86 43 78 38
+                         Q67 45 52 39
+                         Q39 36 30 49Z"
+                      fill="#59434B"
+                      stroke="#49343D"
+                      stroke-width="2.5"/>
+
+                <!-- 瀏海 -->
+                <path d="M29 43
+                         Q39 22 51 29
+                         Q62 16 72 29
+                         Q83 22 92 42
+                         Q79 38 72 43
+                         Q61 35 51 43
+                         Q39 36 29 49Z"
+                      fill="#59434B"/>
+
+                <!-- 眼睛 -->
+                <ellipse cx="46" cy="56" rx="3.2" ry="4.5"
+                         fill="#49343D"/>
+                <ellipse cx="74" cy="56" rx="3.2" ry="4.5"
+                         fill="#49343D"/>
+
+                <!-- 眼睛高光 -->
+                <circle cx="47" cy="54" r="1.2" fill="#fff"/>
+                <circle cx="75" cy="54" r="1.2" fill="#fff"/>
+
+                <!-- 腮紅 -->
+                <ellipse cx="38" cy="68" rx="6" ry="3"
+                         fill="#F4A0A9" opacity=".65"/>
+                <ellipse cx="82" cy="68" rx="6" ry="3"
+                         fill="#F4A0A9" opacity=".65"/>
+
+                <!-- 嘴巴 -->
+                <path d="M55 72 Q60 77 65 72"
+                      fill="none"
+                      stroke="#C7797C"
+                      stroke-width="2"
+                      stroke-linecap="round"/>
+
+                <!-- 衣領 -->
+                <path d="M48 85 L60 96 L72 85"
+                      fill="#FFF5E9"
+                      stroke="#6BAE9F"
+                      stroke-width="2"/>
+
+                <!-- 衣服裝飾 -->
+                <circle cx="60" cy="104" r="3"
+                        fill="#FFF5E9"/>
+
+            </svg>
+
+            <!-- 女孩 -->
+            <svg viewBox="0 0 120 120" aria-label="可愛女孩">
+
+                <!-- 長頭髮後側 -->
+                <path d="M26 46
+                         Q19 15 53 13
+                         Q89 8 96 43
+                         L94 96
+                         Q86 107 78 96
+                         L78 69
+                         L42 69
+                         L42 96
+                         Q31 107 25 94Z"
+                      fill="#76505B"
+                      stroke="#65424E"
+                      stroke-width="2.5"/>
+
+                <!-- 耳朵 -->
+                <ellipse cx="29" cy="56" rx="8" ry="11"
+                         fill="#FFDCCB"/>
+                <ellipse cx="91" cy="56" rx="8" ry="11"
+                         fill="#FFDCCB"/>
+
+                <!-- 頭部 -->
+                <ellipse cx="60" cy="54" rx="33" ry="39"
+                         fill="#FFE2D2"
+                         stroke="#D99A83"
+                         stroke-width="2.5"/>
+
+                <!-- 頭頂頭髮 -->
+                <path d="M27 47
+                         Q21 15 52 14
+                         Q84 8 94 39
+                         Q87 33 81 35
+                         Q72 20 61 31
+                         Q48 20 39 37
+                         Q32 37 27 47Z"
+                      fill="#76505B"/>
+
+                <!-- 瀏海 -->
+                <path d="M29 43
+                         Q36 27 48 29
+                         Q58 19 68 29
+                         Q82 24 92 43
+                         Q78 39 72 45
+                         Q61 37 51 44
+                         Q39 37 29 49Z"
+                      fill="#76505B"/>
+
+                <!-- 蝴蝶結 -->
+                <path d="M83 25 Q70 10 76 7 Q86 8 89 18
+                         Q99 8 105 15 Q108 25 92 30Z"
+                      fill="#F5A8C0"
+                      stroke="#D77D9F"
+                      stroke-width="2"/>
+
+                <circle cx="89" cy="22" r="4"
+                        fill="#FFE7EE"/>
+
+                <!-- 眼睛 -->
+                <ellipse cx="46" cy="56" rx="3.2" ry="4.5"
+                         fill="#49343D"/>
+                <ellipse cx="74" cy="56" rx="3.2" ry="4.5"
+                         fill="#49343D"/>
+
+                <!-- 眼睛高光 -->
+                <circle cx="47" cy="54" r="1.2" fill="#fff"/>
+                <circle cx="75" cy="54" r="1.2" fill="#fff"/>
+
+                <!-- 腮紅 -->
+                <ellipse cx="38" cy="68" rx="6" ry="3"
+                         fill="#F39AAE" opacity=".7"/>
+                <ellipse cx="82" cy="68" rx="6" ry="3"
+                         fill="#F39AAE" opacity=".7"/>
+
+                <!-- 嘴巴 -->
+                <path d="M55 72 Q60 77 65 72"
+                      fill="none"
+                      stroke="#C7797C"
+                      stroke-width="2"
+                      stroke-linecap="round"/>
+
+                <!-- 衣領 -->
+                <path d="M48 85 L60 96 L72 85"
+                      fill="#FFF5F5"
+                      stroke="#D77D9F"
+                      stroke-width="2"/>
+
+                <!-- 衣服蝴蝶結 -->
+                <path d="M60 96 L52 101 L60 105 L68 101Z"
+                      fill="#FFF0F4"
+                      stroke="#D77D9F"
+                      stroke-width="1.5"/>
+
+            </svg>
+
+        </div>
+    </div>
+
+    <!-- 展示櫥窗 -->
+
+    <div class="showcase">
+
+        <div class="showcase-header">
+            <span>CHARACTER COLLECTION</span>
+            <span class="status-light">機臺運作中</span>
+        </div>
+
+        <div class="rates">
+            <div class="rate-item ssr">
+                <strong>SSR</strong>
+                5%
+            </div>
+
+            <div class="rate-item sr">
+                <strong>SR</strong>
+                20%
+            </div>
+
+            <div class="rate-item r">
+                <strong>R</strong>
+                75%
+            </div>
+        </div>
+
+        <div class="dispenser" id="dispenser">
+
+            <div class="empty-message" id="empty-message">
+                等待卡片掉落
+            </div>
+
+            <div class="drawing-message" id="drawing-message">
+                正在抽選……
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 控制面板 -->
+
+    <div class="control-panel">
+
+        <button id="draw-button" class="draw-button">
+            就決定是你了
+        </button>
+
+    </div>
+
+    <div class="machine-bottom">
+        <span>✧</span>
+        <span>LET'S GO</span>
+        <span>✧</span>
+    </div>
+
+</div>
+
+<!-- 卡片 -->
+
+<div id="card-output" class="card">
+
+    <div class="card-inner">
+
+        <div class="card-front">
+            <div class="totem-frame"></div>
+
+            <span class="corner tl">✦</span>
+            <span class="corner tr">✧</span>
+            <span class="corner bl">✧</span>
+            <span class="corner br">✦</span>
+
+            <div class="totem-symbol">✧</div>
+        </div>
+
+        <div class="card-back">
+            <div class="back-decoration"></div>
+            <div class="back-star">✦ ✧ ✦</div>
+
+            <div id="card-rarity" class="card-back-rarity">
+                SSR CHARACTER
+            </div>
+
+            <div id="card-name" class="card-back-name">
+                選項一
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- 新手教學視窗 -->
+
+<div class="tutorial-card hidden" id="tutorial-card">
+
+    <div class="tutorial-step" id="tutorial-step">
+        新手教學
+    </div>
+
+    <div class="tutorial-title" id="tutorial-title">
+        歡迎來到 PickMe抽卡機！
+    </div>
+
+    <div class="tutorial-description" id="tutorial-description">
+        想體驗抽卡樂趣嗎？
+        透過抽卡機隨機獲得吧！
+    </div>
+
+    <div class="tutorial-hint" id="tutorial-hint"></div>
+
+    <div class="tutorial-progress">
+        <span class="progress-dot"></span>
+        <span class="progress-dot"></span>
+        <span class="progress-dot"></span>
+        <span class="progress-dot"></span>
+    </div>
+
+    <div class="tutorial-actions">
+        <button class="tutorial-button" id="tutorial-button">
+            開始教學
+        </button>
+
+    </div>
+
+</div>
+
+<button class="tool-tutorial-launcher" id="tutorialLauncher" type="button">教學</button>
+
+<script src="card.js"></script>
+
+</body>
+</html>

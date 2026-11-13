@@ -1,0 +1,1299 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜黑暗小屋</title>
+
+<style>
+*{box-sizing:border-box}
+:root{--pink:#f3b5c9;--deep:#d77f9e}
+
+html,body{
+  margin:0;width:100%;height:100%;overflow:hidden;
+  background:#020203;color:white;
+  font-family:Arial,"Noto Sans TC",sans-serif;
+}
+#game{position:fixed;inset:0}
+canvas{display:block;width:100%;height:100%}
+
+#hud{position:fixed;top:18px;left:18px;z-index:5;pointer-events:none}
+.panel{
+  background:rgba(20,17,24,.9);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:13px;padding:12px 16px;margin-bottom:9px;
+  backdrop-filter:blur(8px);box-shadow:0 5px 20px #0005;
+}
+.small-label{font-size:12px;color:#c9b5c0;margin-bottom:4px}
+#timer{font-size:30px;font-weight:bold;color:#ffb8d0;font-variant-numeric:tabular-nums}
+#score{font-size:20px;color:#ffe1eb}
+#floor{color:#e6c9d5;font-size:14px}
+
+#crosshair{
+  position:fixed;top:50%;left:50%;width:5px;height:5px;
+  background:white;border-radius:50%;transform:translate(-50%,-50%);
+  z-index:4;box-shadow:0 0 7px white;pointer-events:none;
+}
+#hint{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  z-index:5;background:rgba(24,18,27,.92);
+  border:1px solid #ffffff20;padding:12px 20px;border-radius:30px;
+  color:#f8dbe5;font-size:13px;white-space:nowrap;pointer-events:none;
+}
+.overlay{
+  position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.94);
+  display:flex;justify-content:center;align-items:center;padding:20px;
+}
+.modal{
+  width:min(440px,100%);
+  background:linear-gradient(145deg,#29212e,#1b1720);
+  border:1px solid #f3b5c966;border-radius:23px;
+  padding:28px;text-align:center;box-shadow:0 15px 60px #000;
+}
+h1{color:var(--pink);font-size:29px;margin:0 0 15px}
+p{color:#d5cbd3;line-height:1.8;font-size:14px}
+button{
+  border:0;background:#e995b2;color:#39212c;border-radius:30px;
+  padding:13px 30px;font-size:16px;font-weight:bold;
+  cursor:pointer;margin-top:12px;
+}
+button:hover{background:#ffc3d6}
+.hidden{display:none!important}
+#foundList{
+  max-height:130px;overflow:auto;text-align:left;
+  font-size:13px;color:#f5d9e3;margin:12px 0;line-height:1.9;
+}
+#finalScore{font-size:55px;font-weight:bold;color:#ffb8d0}
+#finalOption{font-size:25px;color:#fff0f5;margin:12px 0}
+</style>
+</head>
+
+<body>
+<div id="game"></div>
+<div id="crosshair"></div>
+
+<div id="hud">
+  <div class="panel">
+    <div class="small-label">剩餘時間</div>
+    <div id="timer">60</div>
+  </div>
+  <div class="panel">
+    <div class="small-label">已蒐集人數</div>
+    <div id="score">0 人</div>
+  </div>
+  <div class="panel" id="floor">目前樓層：一樓</div>
+</div>
+
+<div id="hint">WASD 移動・滑鼠轉向・照到數字後靠近人物碰觸取得</div>
+
+<div class="overlay" id="start">
+  <div class="modal">
+    <h1>黑暗小屋</h1>
+    <p>
+      你來到一棟三層樓的住宅。<br>
+      三層樓各有 5 位、共 15 位正在移動的人物。<br><br>
+      使用手電筒尋找人物身上的數字。<br>
+      <b style="color:#ffb8d0">照到數字後，必須靠近並碰觸人物</b><br>
+      才能取得號碼，每個人物只能計算一次。<br><br>
+      <b style="color:#ffb8d0;font-size:19px">60 秒探索時間</b>
+    </p>
+    <p>W A S D：移動<br>滑鼠：控制方向<br>ESC：暫停</p>
+    <button id="startBtn">進入黑暗小屋</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="pause">
+  <div class="modal">
+    <h1>遊戲暫停</h1>
+    <p>目前探索已暫停。</p>
+    <button id="resumeBtn">繼續探索</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="result">
+  <div class="modal">
+    <h1>探索結束</h1>
+    <p>成功取得的人物數量</p>
+    <div id="finalCount" style="font-size:30px;color:#f3b5c9;font-weight:bold">0 人</div>
+    <p>所有數字總和</p>
+    <div id="finalScore">0</div>
+    <div id="foundList"></div>
+    <p>對應的選項</p>
+    <div id="finalOption">尚未設定</div>
+    <button id="againBtn">再玩一次</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/* =========================
+   基本設定
+========================= */
+const game=document.getElementById("game");
+const timerEl=document.getElementById("timer");
+const scoreEl=document.getElementById("score");
+const floorEl=document.getElementById("floor");
+
+const FLOOR_HEIGHT=3.5;
+const ROOM_SIZE=12;
+const GAME_TIME=60;
+const PEOPLE_COUNT=15;
+
+const PLAYER_RADIUS=0.27;
+const PLAYER_HEIGHT=1.65;
+
+const STAIR_X_MIN=3.25;
+const STAIR_X_MAX=4.75;
+const STAIR_Z_MIN=-3.8;
+const STAIR_Z_MAX=3.8;
+const STAIR_OPENING_X_MIN=2.6;
+const STAIR_OPENING_X_MAX=5.4;
+const STAIR_OPENING_Z_MIN=-3.8;
+const STAIR_OPENING_Z_MAX=3.8;
+const PERSON_MIN_SEPARATION=0.82;
+
+// 樓梯踏階的幾何設定
+const STAIR_START_Z=3.1;
+const STAIR_END_Z=-3.1;
+const STAIR_RISE=3.26;
+const STAIR_BASE_OFFSET=0.12;
+const STAIR_STEPS=14;
+
+const options=[
+  "吃火鍋","吃拉麵","吃壽司","喝飲料",
+  "看電影","逛街","吃披薩","回家休息"
+];
+
+let scene,camera,renderer,clock;
+let player,flashlight;
+let people=[];
+let numberMeshes=[];
+let occluders=[];
+let furnitureCollisions=[];
+let keys={};
+let found=new Set();
+let total=0;
+let timeLeft=GAME_TIME;
+let running=false;
+let ended=false;
+let initialized=false;
+let yaw=0;
+let pitch=0;
+let animationId=null;
+
+const raycaster=new THREE.Raycaster();
+const up=new THREE.Vector3(0,1,0);
+
+/* =========================
+   材質與建築工具
+========================= */
+function material(color,roughness=0.9){
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness:0
+  });
+}
+
+function box(x,y,z,sx,sy,sz,color,level=0,isObstacle=true){
+  const mesh=new THREE.Mesh(
+    new THREE.BoxGeometry(sx,sy,sz),
+    material(color)
+  );
+
+  mesh.position.set(x,y+level*FLOOR_HEIGHT,z);
+  mesh.castShadow=false;
+  mesh.receiveShadow=false;
+  scene.add(mesh);
+
+  if(isObstacle)occluders.push(mesh);
+  return mesh;
+}
+
+function addCollision(x,z,hx,hz,level,minY=0,maxY=2.2){
+  const baseY=level*FLOOR_HEIGHT;
+
+  furnitureCollisions.push({
+    minX:x-hx,maxX:x+hx,
+    minZ:z-hz,maxZ:z+hz,
+    minY:baseY+minY,maxY:baseY+maxY
+  });
+}
+
+function addWorldCollision(x,z,hx,hz,minY,maxY){
+  furnitureCollisions.push({
+    minX:x-hx,maxX:x+hx,
+    minZ:z-hz,maxZ:z+hz,
+    minY,maxY
+  });
+}
+
+/* =========================
+   地板與天花板
+   樓板分區之間保留微小間隙，
+   避免幾何邊緣互相重疊。
+========================= */
+function createFloor(level){
+  const y=-0.15;
+  const gap=0.025;
+
+  if(level===0){
+    box(0,y,0,ROOM_SIZE,0.3,ROOM_SIZE,0x49414a,level,false);
+    return;
+  }
+
+  // 左側樓板
+  box(-1.7-gap/2,y,0,8.6-gap,0.3,ROOM_SIZE-gap,0x49414a,level,false);
+
+  // 右側樓板
+  box(5.7+gap/2,y,0,0.6-gap,0.3,ROOM_SIZE-gap,0x49414a,level,false);
+
+  // 樓梯井前後樓板
+  box(4,y,-4.9-gap/2,2.8-gap,0.3,2.2-gap,0x49414a,level,false);
+  box(4,y,4.9+gap/2,2.8-gap,0.3,2.2-gap,0x49414a,level,false);
+}
+
+function createCeiling(level){
+  const ceilingY=3.1+level*FLOOR_HEIGHT;
+
+  function ceilingPart(x,z,sx,sz){
+    box(x,3.2,z,sx,0.2,sz,0x62545e,level,false);
+
+    addWorldCollision(
+      x,z,sx/2,sz/2,
+      ceilingY,ceilingY+0.2
+    );
+  }
+
+  // 每層天花板都保留樓梯井
+  ceilingPart(-1.7,0,8.6,ROOM_SIZE);
+  ceilingPart(5.7,0,0.6,ROOM_SIZE);
+  ceilingPart(4,-4.9,2.8,2.2);
+  ceilingPart(4,4.9,2.8,2.2);
+
+  if(level===2){
+    ceilingPart(4,0,2.8,7.6);
+  }
+}
+
+/* =========================
+   室內裝飾：依樓層配置
+========================= */
+function createDecor(level){
+
+  // 一樓：客廳
+  if(level===0){
+    box(0,0.025,0,4.5,0.04,3.2,0x49313f,level,false);
+    box(0,0.065,-1.45,4.1,0.025,0.035,0x98717d,level,false);
+    box(0,0.065,1.45,4.1,0.025,0.035,0x98717d,level,false);
+
+    box(0,0.45,-4.65,2.8,0.9,0.55,0x49343e,level);
+    addCollision(0,-4.65,1.5,0.35,level,0,1.1);
+
+    box(0,1.35,-4.3,1.9,1.1,0.12,0x17151b,level,false);
+    box(0,1.35,-4.22,1.75,0.94,0.025,0x302a36,level,false);
+    box(0,0.42,-3.45,1.8,0.12,0.42,0x735761,level);
+    box(-0.72,0.22,-3.45,0.08,0.32,0.08,0x49343e,level);
+    box(0.72,0.22,-3.45,0.08,0.32,0.08,0x49343e,level);
+    addCollision(0,-3.45,0.95,0.28,level,0,0.55);
+
+    const tvLight=new THREE.PointLight(0x9b9bcf,0.015,2);
+    tvLight.position.set(0,1.4,-3.9);
+    scene.add(tvLight);
+
+    box(4.5,0.4,-4.4,0.9,0.8,0.8,0x57404a,level);
+    addCollision(4.5,-4.4,0.5,0.45,level,0,1.3);
+    box(4.5,0.85,-4.4,0.95,0.08,0.85,0x98747b,level,false);
+
+    const vase=new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12,0.19,0.35,12),
+      material(0x94717d)
+    );
+    vase.position.set(4.5,1.05,-4.4);
+    scene.add(vase);
+
+    createPlant(-4.3,3.8,level);
+
+    box(-2.2,2.05,-5.83,1.35,1.05,0.08,0x96747b,level,false);
+    box(-2.2,2.05,-5.76,1.15,0.85,0.025,0x45333f,level,false);
+    box(-2.2,2.05,-5.69,0.9,0.62,0.025,0x66505c,level,false);
+  }
+
+  // 二樓：廚房與餐廳
+  if(level===1){
+    box(-3.7,0.025,-1.1,2.4,0.04,3.2,0x51404a,level,false);
+
+    box(-3.7,0.48,-4.4,4.1,0.96,0.9,0x66505a,level);
+    addCollision(-3.7,-4.4,2.1,0.5,level,0,1.1);
+    box(-3.7,1.0,-4.4,4.2,0.12,1.0,0xb8a6a5,level,false);
+
+    box(-3.7,2.15,-5.15,4.1,1.0,0.45,0x57434d,level);
+    addCollision(-3.7,-5.15,2.1,0.25,level,1.6,2.7);
+
+    box(-4.8,1.2,-2.5,1.0,2.4,0.9,0xaaa4a8,level);
+    addCollision(-4.8,-2.5,0.55,0.5,level,0,2.5);
+    box(-4.38,1.3,-2.02,0.05,0.65,0.06,0x514b53,level,false);
+
+    box(-2.5,1.1,-4.35,1.0,0.08,0.85,0x343139,level,false);
+
+    for(let i=0;i<2;i++){
+      const burner=new THREE.Mesh(
+        new THREE.CylinderGeometry(0.19,0.19,0.025,20),
+        material(0x1e1c23)
+      );
+      burner.position.set(-2.75+i*0.5,1.16+FLOOR_HEIGHT,-4.35);
+      scene.add(burner);
+    }
+
+    box(-4.2,1.075,-4.35,0.8,0.035,0.48,0x55545a,level,false);
+    box(-3.7,1.64,-5.64,4.1,0.035,0.045,0x98747b,level,false);
+
+    const faucet=new THREE.Mesh(
+      new THREE.TorusGeometry(0.13,0.025,8,18,Math.PI),
+      material(0xb9b9bd)
+    );
+    faucet.rotation.z=Math.PI/2;
+    faucet.position.set(-4.2,1.25+FLOOR_HEIGHT,-4.1);
+    scene.add(faucet);
+
+    box(0,0.025,2.8,4.8,0.04,3.2,0x59404d,level,false);
+
+    box(0,0.95,2.8,2.6,0.12,1.5,0x8c6a59,level,false);
+    box(0,1.02,2.8,1.55,0.025,0.22,0xc39c9b,level,false);
+    box(-1.05,0.45,2.8,0.15,0.9,0.15,0x59433b,level);
+    box(1.05,0.45,2.8,0.15,0.9,0.15,0x59433b,level);
+    addCollision(0,2.8,1.35,0.8,level,0,1.1);
+
+    const centerpiece=new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15,0.2,0.18,12),
+      material(0x96717d)
+    );
+    centerpiece.position.set(0,1.12+FLOOR_HEIGHT,2.8);
+    scene.add(centerpiece);
+
+    const chairPositions=[
+      [-1.8,2.8],[1.8,2.8],[0,1.65],[0,3.95]
+    ];
+
+    chairPositions.forEach(([x,z])=>{
+      box(x,0.5,z,0.65,0.15,0.65,0x765a55,level);
+      box(x,0.95,z+0.25,0.65,0.9,0.15,0x765a55,level);
+      addCollision(x,z,0.4,0.4,level,0,1.5);
+    });
+
+    box(-3.7,2.85,-5.78,2.2,0.35,0.06,0x9a7785,level,false);
+    createPlant(-5,4.4,level);
+  }
+
+  // 三樓：臥室
+  if(level===2){
+    box(0,0.025,0,4.6,0.04,3.6,0x57404e,level,false);
+
+    box(-2.8,0.35,-2.7,2.2,0.6,2.3,0x55404d,level);
+    box(-2.8,0.72,-2.7,2.2,0.12,2.3,0xc19aaa,level,false);
+    box(-2.8,0.79,-2.7,1.35,0.06,1.5,0xb47f91,level,false);
+    box(-2.8,0.86,-3.45,1.0,0.18,0.55,0xe0c5d0,level,false);
+    addCollision(-2.8,-2.7,1.15,1.2,level,0,0.95);
+
+    box(-2.8,0.35,2.2,2.2,0.6,2.3,0x55404d,level);
+    box(-2.8,0.72,2.2,2.2,0.12,2.3,0x9b829c,level,false);
+    box(-2.8,0.79,2.2,1.35,0.06,1.5,0x806b88,level,false);
+    box(-2.8,0.86,1.45,1.0,0.18,0.55,0xe0c5d0,level,false);
+    addCollision(-2.8,2.2,1.15,1.2,level,0,0.95);
+
+    box(0,1.2,-5.55,2.0,2.4,0.65,0x624b55,level);
+    addCollision(0,-5.55,1.05,0.4,level,0,2.5);
+
+    box(-0.5,1.2,-5.19,0.85,2.1,0.04,0x80616d,level,false);
+    box(0.5,1.2,-5.19,0.85,2.1,0.04,0x80616d,level,false);
+
+    box(-4.5,0.45,-2.7,0.8,0.9,0.8,0x725660,level);
+    addCollision(-4.5,-2.7,0.45,0.45,level,0,1.1);
+    box(-4.5,0.93,-2.7,0.85,0.08,0.85,0xa98a91,level,false);
+
+    box(-4.5,0.45,2.2,0.8,0.9,0.8,0x725660,level);
+    addCollision(-4.5,2.2,0.45,0.45,level,0,1.1);
+    box(-4.5,0.93,2.2,0.85,0.08,0.85,0xa98a91,level,false);
+
+    createBedsideLamp(-4.5,-2.7,level);
+    createBedsideLamp(-4.5,2.2,level);
+
+    box(1.8,2.15,-5.82,1.3,1.0,0.08,0x96747b,level,false);
+    box(1.8,2.15,-5.75,1.05,0.75,0.025,0x66505c,level,false);
+
+    createPlant(-5,4.3,level);
+  }
+
+  // 牆腳線
+  box(0,0.12,-5.82,11.5,0.18,0.08,0x80616c,level,false);
+  box(0,0.12,5.82,11.5,0.18,0.08,0x80616c,level,false);
+  box(-5.82,0.12,0,0.08,0.18,11.5,0x80616c,level,false);
+  box(5.82,0.12,0,0.08,0.18,11.5,0x80616c,level,false);
+
+  const glow=new THREE.PointLight(0xd69ab3,0.008,3);
+  glow.position.set(-4,2.4+level*FLOOR_HEIGHT,-4.5);
+  scene.add(glow);
+}
+
+/* =========================
+   植物盆栽
+========================= */
+function createPlant(x,z,level){
+  const pot=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22,0.16,0.35,12),
+    material(0x66504a)
+  );
+  pot.position.set(x,0.2+level*FLOOR_HEIGHT,z);
+  scene.add(pot);
+
+  const leaves=material(0x43584a);
+
+  for(let i=0;i<5;i++){
+    const leaf=new THREE.Mesh(
+      new THREE.ConeGeometry(0.13,0.85,8),
+      leaves
+    );
+    leaf.position.set(
+      x+Math.sin(i*1.3)*0.18,
+      0.85+level*FLOOR_HEIGHT,
+      z+Math.cos(i*1.3)*0.18
+    );
+    scene.add(leaf);
+  }
+
+  addCollision(x,z,0.3,0.3,level,0,1.2);
+}
+
+/* =========================
+   床頭燈
+========================= */
+function createBedsideLamp(x,z,level){
+  const baseY=level*FLOOR_HEIGHT;
+
+  const base=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.13,0.16,0.08,12),
+    material(0x94717d)
+  );
+  base.position.set(x,0.99+baseY,z);
+  scene.add(base);
+
+  const stem=new THREE.Mesh(
+    new THREE.CylinderGeometry(0.035,0.035,0.35,10),
+    material(0x94717d)
+  );
+  stem.position.set(x,1.2+baseY,z);
+  scene.add(stem);
+
+  const shade=new THREE.Mesh(
+    new THREE.ConeGeometry(0.2,0.28,12,1,true),
+    new THREE.MeshStandardMaterial({
+      color:0xd6b6bd,side:THREE.DoubleSide,roughness:1
+    })
+  );
+  shade.position.set(x,1.48+baseY,z);
+  scene.add(shade);
+
+  const lampLight=new THREE.PointLight(0xd8a6b5,0.015,2);
+  lampLight.position.set(x,1.4+baseY,z);
+  scene.add(lampLight);
+}
+
+/* =========================
+   建立三層樓住宅
+========================= */
+function createHouse(){
+  for(let f=0;f<3;f++){
+    createFloor(f);
+    createCeiling(f);
+
+    box(0,1.6,-6,ROOM_SIZE,3.2,0.25,0x554750,f);
+    box(0,1.6,6,ROOM_SIZE,3.2,0.25,0x554750,f);
+    box(-6,1.6,0,0.25,3.2,ROOM_SIZE,0x554750,f);
+    box(6,1.6,0,0.25,3.2,ROOM_SIZE,0x554750,f);
+
+    addCollision(0,-6,6,0.125,f,0,3.2);
+    addCollision(0,6,6,0.125,f,0,3.2);
+    addCollision(-6,0,0.125,6,f,0,3.2);
+    addCollision(6,0,0.125,6,f,0,3.2);
+
+    createDecor(f);
+  }
+
+  createStairs();
+}
+
+/* =========================
+   樓梯
+   修正重點：
+   1. 第一階不再穿入一樓地板。
+   2. 最後一階不再穿入上一層樓板。
+   3. 踏階高度與移動高度使用同一套數值。
+   4. 踏階之間保留間距，避免幾何重疊。
+========================= */
+function createStairs(){
+  const stepDepth=0.40;
+  const stepWidth=STAIR_OPENING_X_MAX-STAIR_OPENING_X_MIN;
+  const stepHeight=0.18;
+  const zSpacing=(STAIR_START_Z-STAIR_END_Z)/(STAIR_STEPS-1);
+  const ySpacing=STAIR_RISE/(STAIR_STEPS-1);
+
+  for(let f=0;f<2;f++){
+    const stair=new THREE.Group();
+
+    for(let i=0;i<STAIR_STEPS;i++){
+      const step=new THREE.Mesh(
+        new THREE.BoxGeometry(stepWidth,stepHeight,stepDepth),
+        material(0x927c79)
+      );
+
+      step.position.set(
+        4,
+        STAIR_BASE_OFFSET-stepHeight/2+i*ySpacing,
+        STAIR_START_Z-i*zSpacing
+      );
+
+      step.castShadow=false;
+      step.receiveShadow=false;
+
+      stair.add(step);
+      occluders.push(step);
+    }
+
+    for(const landing of [
+      {z:3.55,y:STAIR_BASE_OFFSET-0.06},
+      {z:-3.55,y:STAIR_BASE_OFFSET+STAIR_RISE-0.06}
+    ]){
+      const platform=new THREE.Mesh(
+        new THREE.BoxGeometry(stepWidth,0.12,0.5),
+        material(0x927c79)
+      );
+      platform.position.set(4,landing.y,landing.z);
+      stair.add(platform);
+      occluders.push(platform);
+    }
+
+    // 扶手改用圓柱，避免長方體邊角互相穿插
+    const railMaterial=material(0x75626a);
+
+    for(const side of [-1,1]){
+      const railX=4+side*(stepWidth/2-0.12);
+      const rail=new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055,0.055,6.0,10),
+        railMaterial
+      );
+
+      rail.position.set(railX,2.0,0);
+      rail.rotation.x=Math.PI/2;
+
+      stair.add(rail);
+      occluders.push(rail);
+
+      addWorldCollision(
+        railX,0,
+        0.14,3.1,
+        f*FLOOR_HEIGHT,
+        (f+1)*FLOOR_HEIGHT
+      );
+    }
+
+    stair.position.y=f*FLOOR_HEIGHT;
+    scene.add(stair);
+  }
+}
+
+/* =========================
+   3D 碰撞核心
+========================= */
+function circleBoxCollision(x,z,radius,box){
+  const closestX=Math.max(box.minX,Math.min(x,box.maxX));
+  const closestZ=Math.max(box.minZ,Math.min(z,box.maxZ));
+  const dx=x-closestX;
+  const dz=z-closestZ;
+  return dx*dx+dz*dz<radius*radius;
+}
+
+function verticalOverlap(playerY,playerHeight,minY,maxY){
+  return playerY<maxY&&playerY+playerHeight>minY;
+}
+
+function isStaticBlocked(x,z,playerY,playerHeight,radius){
+  for(const item of furnitureCollisions){
+    if(!verticalOverlap(playerY,playerHeight,item.minY,item.maxY))continue;
+    if(circleBoxCollision(x,z,radius,item))return true;
+  }
+  return false;
+}
+
+function isPersonBlocked(x,z,y,ignorePerson=null){
+  for(const person of people){
+    if(person===ignorePerson||person.found)continue;
+
+    const py=person.group.position.y;
+    if(!verticalOverlap(y,PLAYER_HEIGHT,py,py+1.8))continue;
+
+    const dx=x-person.group.position.x;
+    const dz=z-person.group.position.z;
+    const minDistance=PLAYER_RADIUS+0.34;
+
+    if(dx*dx+dz*dz<minDistance*minDistance)return true;
+  }
+  return false;
+}
+
+function outsideRoom(x,z){
+  return x<-5.45||x>5.45||z<-5.45||z>5.45;
+}
+
+/* =========================
+   樓梯斜坡與樓板判定
+========================= */
+function inStairArea(x,z){
+  return x>=STAIR_X_MIN&&x<=STAIR_X_MAX&&
+         z>=STAIR_Z_MIN&&z<=STAIR_Z_MAX;
+}
+
+function getStairFlight(currentY,z){
+  const nearestLevel=Math.round(currentY/FLOOR_HEIGHT);
+
+  if(Math.abs(currentY-nearestLevel*FLOOR_HEIGHT)<0.22){
+    if(z>=0)return Math.max(0,Math.min(1,nearestLevel));
+    return Math.max(0,Math.min(1,nearestLevel-1));
+  }
+
+  return Math.max(0,Math.min(1,Math.floor(currentY/FLOOR_HEIGHT)));
+}
+
+function getStairHeight(x,z,currentY){
+  if(!inStairArea(x,z))return null;
+
+  const flight=getStairFlight(currentY,z);
+
+  const progress=THREE.MathUtils.clamp(
+    (STAIR_START_Z-z)/(STAIR_START_Z-STAIR_END_Z),
+    0,1
+  );
+
+  return flight*FLOOR_HEIGHT+
+    STAIR_BASE_OFFSET+
+    progress*STAIR_RISE;
+}
+
+function isInsideFloorOpening(x,z,level){
+  if(level===0)return false;
+
+  return x>STAIR_OPENING_X_MIN&&x<STAIR_OPENING_X_MAX&&
+         z>STAIR_OPENING_Z_MIN&&z<STAIR_OPENING_Z_MAX;
+}
+
+function isNearStairOpening(x,z){
+  return x>STAIR_OPENING_X_MIN-0.15&&
+         x<STAIR_OPENING_X_MAX+0.15&&
+         z>STAIR_OPENING_Z_MIN-0.35&&
+         z<STAIR_OPENING_Z_MAX+0.35;
+}
+
+function getGroundHeight(x,z,currentY){
+  const stairHeight=getStairHeight(x,z,currentY);
+  if(stairHeight!==null)return stairHeight;
+
+  const nearestLevel=Math.round(currentY/FLOOR_HEIGHT);
+  const floorY=nearestLevel*FLOOR_HEIGHT;
+
+  if(isInsideFloorOpening(x,z,nearestLevel))return null;
+  if(Math.abs(currentY-floorY)>0.38)return null;
+
+  return floorY;
+}
+
+/* =========================
+   玩家碰撞判定
+========================= */
+function canPlayerOccupy(x,z,y){
+  if(outsideRoom(x,z))return false;
+
+  if(isStaticBlocked(x,z,y,PLAYER_HEIGHT,PLAYER_RADIUS))return false;
+  if(isPersonBlocked(x,z,y))return false;
+
+  return true;
+}
+
+/* =========================
+   建立人物
+========================= */
+function createPeople(){
+  people=[];
+  numberMeshes=[];
+  const floorAssignments=[0,0,0,0,0,1,1,1,1,1,2,2,2,2,2];
+
+  for(let i=floorAssignments.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [floorAssignments[i],floorAssignments[j]]=
+      [floorAssignments[j],floorAssignments[i]];
+  }
+
+  for(let i=0;i<PEOPLE_COUNT;i++){
+    const num=1+Math.floor(Math.random()*10);
+    const group=new THREE.Group();
+
+    const skin=material(0x60463f);
+    const clothes=material([
+      0x5c465b,0x3f5260,0x71606a,
+      0x645044,0x66513f,0x48514d
+    ][i%6]);
+
+    const body=new THREE.Mesh(
+      new THREE.BoxGeometry(0.48,0.85,0.3),clothes
+    );
+    body.position.y=1.05;
+    group.add(body);
+
+    const head=new THREE.Mesh(
+      new THREE.SphereGeometry(0.2,16,16),skin
+    );
+    head.position.y=1.62;
+    group.add(head);
+
+    for(const s of [-1,1]){
+      const arm=new THREE.Mesh(
+        new THREE.BoxGeometry(0.14,0.65,0.18),clothes
+      );
+      arm.position.set(s*0.29,1.05,0);
+      group.add(arm);
+    }
+
+    for(const s of [-1,1]){
+      const leg=new THREE.Mesh(
+        new THREE.BoxGeometry(0.17,0.65,0.2),clothes
+      );
+      leg.position.set(s*0.14,0.35,0);
+      group.add(leg);
+    }
+
+    const canvas=document.createElement("canvas");
+    canvas.width=256;
+    canvas.height=256;
+    const ctx=canvas.getContext("2d");
+
+    ctx.clearRect(0,0,256,256);
+    ctx.font="bold 125px Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.lineWidth=8;
+    ctx.strokeStyle="#332a31";
+    ctx.strokeText(num,128,128);
+    ctx.fillStyle="#ffffff";
+    ctx.fillText(num,128,128);
+
+    const texture=new THREE.CanvasTexture(canvas);
+
+    const numberMaterial=new THREE.MeshStandardMaterial({
+      map:texture,
+      transparent:true,
+      side:THREE.DoubleSide,
+      depthWrite:false,
+      roughness:1
+    });
+
+    const front=new THREE.Mesh(
+      new THREE.PlaneGeometry(0.4,0.35),numberMaterial
+    );
+    front.position.set(0,1.1,0.205);
+    front.userData.personId=i;
+    group.add(front);
+
+    const back=new THREE.Mesh(
+      new THREE.PlaneGeometry(0.4,0.35),numberMaterial.clone()
+    );
+    back.position.set(0,1.1,-0.205);
+    back.rotation.y=Math.PI;
+    back.userData.personId=i;
+    group.add(back);
+
+    numberMeshes.push(front,back);
+
+    const level=floorAssignments[i];
+    let spawn=null;
+
+    const baseY=level*FLOOR_HEIGHT;
+
+    function isValidSpawn(x,z){
+      const nearPlayerSpawn=level===0&&Math.hypot(x,z-4)<1.4;
+      const nearStairs=isNearStairOpening(x,z);
+      const blocked=isStaticBlocked(x,z,baseY,1.8,0.28);
+      const overlapsPerson=people.some(person=>{
+        if(person.level!==level)return false;
+        const dx=x-person.group.position.x;
+        const dz=z-person.group.position.z;
+        return dx*dx+dz*dz<PERSON_MIN_SEPARATION*PERSON_MIN_SEPARATION;
+      });
+
+      return !nearPlayerSpawn&&!nearStairs&&!blocked&&!overlapsPerson;
+    }
+
+    for(let attempt=0;attempt<150&&!spawn;attempt++){
+      const x=(Math.random()-0.5)*8;
+      const z=(Math.random()-0.5)*8;
+      if(isValidSpawn(x,z))spawn={x,z};
+    }
+
+    for(let x=-4.5;x<=4.5&&!spawn;x+=0.75){
+      for(let z=-4.5;z<=4.5&&!spawn;z+=0.75){
+        if(isValidSpawn(x,z))spawn={x,z};
+      }
+    }
+
+    if(!spawn){
+      throw new Error("無法為人物安排不重疊且不阻擋樓梯的位置。");
+    }
+
+    const {x,z}=spawn;
+
+    group.position.set(x,baseY,z);
+    const direction=Math.random()*Math.PI*2;
+    group.rotation.y=direction;
+    scene.add(group);
+
+    people.push({
+      group,num,id:i,level,
+      direction,
+      targetDirection:direction,
+      speed:0.5+Math.random()*0.6,
+      turn:Math.random()*3,
+      wasBlocked:false,
+      seen:false,
+      found:false
+    });
+  }
+}
+
+/* =========================
+   初始化場景
+========================= */
+function createWorld(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x030205);
+  scene.fog=new THREE.FogExp2(0x030205,0.022);
+
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,100);
+
+  renderer=new THREE.WebGLRenderer({
+    antialias:true,
+    logarithmicDepthBuffer:false
+  });
+
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.shadowMap.enabled=false;
+
+  game.innerHTML="";
+  game.appendChild(renderer.domElement);
+
+  clock=new THREE.Clock();
+
+  scene.add(new THREE.AmbientLight(0xffe9ef,0.003));
+  scene.add(new THREE.HemisphereLight(0xffe8ef,0x514750,0.012));
+
+  player=new THREE.Group();
+  player.position.set(0,0,4);
+  scene.add(player);
+
+  camera.position.set(0,1.6,0);
+  player.add(camera);
+
+  flashlight=new THREE.SpotLight(
+    0xffe8d8,3.2,16,Math.PI/8,0.72,1.4
+  );
+  flashlight.position.set(0,0,0);
+  flashlight.target.position.set(0,0,-1);
+  flashlight.castShadow=false;
+
+  camera.add(flashlight);
+  camera.add(flashlight.target);
+
+  createHouse();
+  createPeople();
+
+  initialized=true;
+}
+
+/* =========================
+   人物移動與碰撞
+========================= */
+function updatePeople(dt){
+  people.forEach(p=>{
+    p.turn-=dt;
+    if(p.turn<=0){
+      p.targetDirection+=(Math.random()-0.5)*1.6;
+      p.turn=1+Math.random()*3;
+    }
+
+    const playerDx=p.group.position.x-player.position.x;
+    const playerDz=p.group.position.z-player.position.z;
+    const playerDistance=Math.hypot(playerDx,playerDz);
+    const playerOnFloor=p.level===Math.round(player.position.y/FLOOR_HEIGHT);
+
+    if(!p.found&&playerOnFloor&&playerDistance<1.6){
+      p.targetDirection=Math.atan2(playerDx,playerDz);
+    }
+
+    let turnDelta=p.targetDirection-p.direction;
+    turnDelta=Math.atan2(Math.sin(turnDelta),Math.cos(turnDelta));
+    p.direction+=THREE.MathUtils.clamp(turnDelta,-2.2*dt,2.2*dt);
+
+    if(p.found)return;
+
+    const dx=Math.sin(p.direction)*p.speed*dt;
+    const dz=Math.cos(p.direction)*p.speed*dt;
+
+    const oldX=p.group.position.x;
+    const oldZ=p.group.position.z;
+    const baseY=p.level*FLOOR_HEIGHT;
+
+    const nextX=oldX+dx;
+    const nextZ=oldZ+dz;
+
+    let blocked=(
+      nextX<-4.7||nextX>4.7||
+      nextZ<-4.7||nextZ>4.7||
+      isNearStairOpening(nextX,nextZ)||
+      (playerOnFloor&&Math.hypot(nextX-player.position.x,nextZ-player.position.z)<1.1)
+    );
+
+    if(!blocked&&isStaticBlocked(nextX,nextZ,baseY,1.8,0.34)){
+      blocked=true;
+    }
+
+    if(!blocked){
+      for(const other of people){
+        if(other===p||other.found||other.level!==p.level)continue;
+
+        const ox=nextX-other.group.position.x;
+        const oz=nextZ-other.group.position.z;
+
+        if(ox*ox+oz*oz<PERSON_MIN_SEPARATION*PERSON_MIN_SEPARATION){
+          blocked=true;
+          break;
+        }
+      }
+    }
+
+    if(blocked){
+      if(!p.wasBlocked){
+        p.targetDirection+=Math.PI*(0.65+Math.random()*0.7);
+      }
+    }else{
+      p.group.position.x=nextX;
+      p.group.position.z=nextZ;
+    }
+
+    p.wasBlocked=blocked;
+    p.group.rotation.y=p.direction;
+  });
+}
+
+/* =========================
+   玩家移動與 3D 碰撞
+========================= */
+function updateMovement(dt){
+  const speed=4;
+  const forward=new THREE.Vector3();
+
+  camera.getWorldDirection(forward);
+  forward.y=0;
+  forward.normalize();
+
+  const right=new THREE.Vector3().crossVectors(forward,up).normalize();
+
+  let dx=0,dz=0;
+
+  if(keys.KeyW){dx+=forward.x;dz+=forward.z}
+  if(keys.KeyS){dx-=forward.x;dz-=forward.z}
+  if(keys.KeyA){dx-=right.x;dz-=right.z}
+  if(keys.KeyD){dx+=right.x;dz+=right.z}
+
+  const length=Math.hypot(dx,dz);
+
+  if(length===0){
+    updateFloorHeight();
+    return;
+  }
+
+  dx=dx/length*speed*dt;
+  dz=dz/length*speed*dt;
+
+  const distance=Math.max(Math.abs(dx),Math.abs(dz));
+  const steps=Math.max(1,Math.ceil(distance/0.08));
+  const stepX=dx/steps;
+  const stepZ=dz/steps;
+
+  for(let i=0;i<steps;i++){
+    if(stepX!==0){
+      const testX=player.position.x+stepX;
+      const testZ=player.position.z;
+      const groundY=getGroundHeight(testX,testZ,player.position.y);
+
+      if(groundY!==null&&canPlayerOccupy(testX,testZ,groundY)){
+        player.position.x=testX;
+        player.position.y=groundY;
+      }
+    }
+
+    if(stepZ!==0){
+      const testX=player.position.x;
+      const testZ=player.position.z+stepZ;
+      const groundY=getGroundHeight(testX,testZ,player.position.y);
+
+      if(groundY!==null&&canPlayerOccupy(testX,testZ,groundY)){
+        player.position.z=testZ;
+        player.position.y=groundY;
+      }
+    }
+  }
+
+  updateFloorHeight();
+}
+
+/* =========================
+   樓層顯示
+========================= */
+function updateFloorHeight(){
+  const level=Math.max(0,Math.min(2,Math.round(player.position.y/FLOOR_HEIGHT)));
+  floorEl.textContent="目前樓層："+["一樓","二樓","三樓"][level];
+}
+
+/* =========================
+   手電筒照射數字
+========================= */
+function checkLight(){
+  scene.updateMatrixWorld(true);
+
+  const cameraDirection=new THREE.Vector3();
+  camera.getWorldDirection(cameraDirection);
+
+  const cameraPosition=new THREE.Vector3();
+  camera.getWorldPosition(cameraPosition);
+
+  const personMeshes=people.flatMap(person=>person.group.children);
+  for(const person of people){
+    const targetPosition=person.group.position.clone();
+    targetPosition.y+=1.05;
+
+    const direction=targetPosition.sub(cameraPosition);
+    const distance=direction.length();
+    let illuminated=false;
+
+    if(distance<=14&&distance>=0.1){
+      direction.normalize();
+      if(cameraDirection.angleTo(direction)<=flashlight.angle*0.85){
+        raycaster.set(cameraPosition,direction);
+        raycaster.far=distance+0.05;
+        const hits=raycaster.intersectObjects(
+          [...occluders,...personMeshes],false
+        );
+        illuminated=hits.length>0&&hits[0].object.parent===person.group;
+      }
+    }
+
+    if(!illuminated||person.seen)continue;
+
+    for(const mesh of numberMeshes){
+      if(mesh.userData.personId!==person.id)continue;
+
+      const numberPosition=mesh.getWorldPosition(new THREE.Vector3());
+      const numberDirection=numberPosition.sub(cameraPosition);
+      const numberDistance=numberDirection.length();
+      if(numberDistance>14||numberDistance<0.1)continue;
+
+      numberDirection.normalize();
+      if(cameraDirection.angleTo(numberDirection)>flashlight.angle*0.85)continue;
+
+      raycaster.set(cameraPosition,numberDirection);
+      raycaster.far=numberDistance+0.05;
+      const hits=raycaster.intersectObjects([...occluders,...numberMeshes],false);
+
+      if(hits.length&&hits[0].object===mesh){
+        person.seen=true;
+        break;
+      }
+    }
+  }
+}
+
+/* =========================
+   碰觸人物取得號碼
+========================= */
+function checkTouch(){
+  const playerX=player.position.x;
+  const playerZ=player.position.z;
+  const playerY=player.position.y;
+
+  people.forEach(person=>{
+    if(person.found||!person.seen)return;
+
+    const dx=playerX-person.group.position.x;
+    const dz=playerZ-person.group.position.z;
+    const horizontalDistance=Math.sqrt(dx*dx+dz*dz);
+    const verticalDistance=Math.abs(playerY-person.group.position.y);
+
+    if(horizontalDistance<=0.75&&verticalDistance<=0.8){
+      person.found=true;
+      found.add(person.id);
+      total+=person.num;
+      scoreEl.textContent=found.size+" 人";
+    }
+  });
+}
+
+/* =========================
+   遊戲開始
+========================= */
+function startGame(){
+  if(!initialized){
+    createWorld();
+  }else{
+    people.forEach(p=>scene.remove(p.group));
+    people=[];
+    numberMeshes=[];
+    createPeople();
+  }
+
+  found.clear();
+  total=0;
+  timeLeft=GAME_TIME;
+  ended=false;
+  running=true;
+  yaw=0;
+  pitch=0;
+
+  player.position.set(0,0,4);
+  player.rotation.set(0,0,0);
+  camera.rotation.set(0,0,0);
+  keys={};
+
+  scoreEl.textContent="0 人";
+  timerEl.textContent=String(GAME_TIME);
+  floorEl.textContent="目前樓層：一樓";
+
+  document.getElementById("start").classList.add("hidden");
+  document.getElementById("result").classList.add("hidden");
+  document.getElementById("pause").classList.add("hidden");
+
+  renderer.domElement.requestPointerLock();
+  clock.getDelta();
+
+  cancelAnimationFrame(animationId);
+  animate();
+}
+
+/* =========================
+   結算
+========================= */
+function finishGame(){
+  if(ended)return;
+
+  ended=true;
+  running=false;
+  cancelAnimationFrame(animationId);
+
+  if(document.pointerLockElement)document.exitPointerLock();
+
+  document.getElementById("finalCount").textContent=found.size+" 人";
+  document.getElementById("finalScore").textContent=total;
+
+
+
+  const option=options.length
+    ?options[(total-1+options.length)%options.length]
+    :"尚未設定選項";
+
+  document.getElementById("finalOption").textContent=
+    total===0?"沒有找到數字":option;
+
+  document.getElementById("result").classList.remove("hidden");
+}
+
+/* =========================
+   遊戲動畫
+========================= */
+function animate(){
+  if(!running)return;
+
+  animationId=requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+
+  updateMovement(dt);
+  updatePeople(dt);
+  checkLight();
+  checkTouch();
+
+  timeLeft-=dt;
+  timerEl.textContent=Math.max(0,Math.ceil(timeLeft));
+
+  if(timeLeft<=0){
+    finishGame();
+    return;
+  }
+
+  renderer.render(scene,camera);
+}
+
+/* =========================
+   操作事件
+========================= */
+document.addEventListener("keydown",e=>{
+  keys[e.code]=true;
+
+  if(e.code==="Escape"&&running){
+    running=false;
+    cancelAnimationFrame(animationId);
+    document.getElementById("pause").classList.remove("hidden");
+
+    if(document.pointerLockElement)document.exitPointerLock();
+  }
+});
+
+document.addEventListener("keyup",e=>{
+  keys[e.code]=false;
+});
+
+document.addEventListener("mousemove",e=>{
+  if(document.pointerLockElement&&running){
+    yaw-=e.movementX*0.002;
+    pitch-=e.movementY*0.002;
+    pitch=Math.max(-1.2,Math.min(1.2,pitch));
+
+    player.rotation.y=yaw;
+    camera.rotation.x=pitch;
+  }
+});
+
+/* =========================
+   按鈕
+========================= */
+document.getElementById("startBtn").onclick=startGame;
+document.getElementById("againBtn").onclick=startGame;
+
+document.getElementById("resumeBtn").onclick=()=>{
+  running=true;
+  document.getElementById("pause").classList.add("hidden");
+  renderer.domElement.requestPointerLock();
+  clock.getDelta();
+  animate();
+};
+
+/* =========================
+   畫面縮放
+========================= */
+window.addEventListener("resize",()=>{
+  if(!camera||!renderer)return;
+
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>

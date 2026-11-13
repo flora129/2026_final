@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PickMe｜假日去哪逛扭蛋</title>
+  <link rel="stylesheet" href="../tool-transition.css">
+  <script src="../tool-transition.js"></script>
+
+<link rel="stylesheet" href="travel-gacha.css">
+</head>
+
+<body>
+
+<div class="ambient-decorations">
+    <span class="deco deco-star">✦</span>
+    <span class="deco deco-heart">♥</span>
+    <span class="deco deco-ball"></span>
+    <span class="deco deco-star">✧</span>
+    <span class="deco deco-heart">♡</span>
+    <span class="deco deco-ball mint"></span>
+    <span class="deco deco-star">✧</span>
+    <span class="deco deco-ball yellow"></span>
+</div>
+
+<div class="gachapon-machine" id="machine">
+
+    <div class="machine-top">
+        <div class="lights">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+        </div>
+    </div>
+
+    <div class="gachapon-window" id="window">
+        <canvas id="gachaCanvas"></canvas>
+    </div>
+
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-ui" id="panelUi">
+            <div
+                class="crank"
+                id="crank"
+                role="button"
+                tabindex="0"
+                aria-label="啟動扭蛋機"
+            ></div>
+        </div>
+
+        <div class="exit-hole"></div>
+    </div>
+
+    <div class="machine-bottom">
+        ✧ LET'S GO OUT ✧
+    </div>
+
+</div>
+
+<!-- 滾出來的扭蛋 -->
+<div class="gacha-drop-container" id="eggContainer">
+    <div class="egg-shell" id="eggShell">
+        <div class="shell-top" id="eggTop">
+            <span class="egg-face" id="eggFace">ᵔᴥᵔ</span>
+        </div>
+        <div class="shell-bottom"></div>
+    </div>
+</div>
+
+<!-- 點擊任意位置關閉結果 -->
+<div
+    class="result-overlay"
+    id="resultOverlay"
+></div>
+
+<!-- 中央金色挑戰卡片 -->
+<div class="lucky-card" id="luckyCard">
+    <div class="card-number" id="cardNumber">挑戰內容</div>
+</div>
+
+<script src="travel-gacha.js"></script>
+
+</body>
+</html>

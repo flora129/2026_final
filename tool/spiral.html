@@ -1,0 +1,1218 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜3D 螺旋球球決定器</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --pink: #f3b5c9;
+    --deep-pink: #d77f9e;
+    --dark: #735366;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: Arial, "Microsoft JhengHei", sans-serif;
+    background: #f7e4ed;
+    color: var(--dark);
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+}
+
+.scene-wrapper {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    border: none;
+    border-radius: 0;
+    background: #f7e4ed;
+    box-shadow: none;
+}
+
+#scene {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* 結果視窗 */
+
+.result-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(91, 54, 75, 0.38);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+}
+
+.result-overlay.show {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+/* 圓形結果卡片 */
+
+.result-card {
+    width: min(320px, 88vw);
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, #fffafd, #ffeaf1);
+    border: 6px solid white;
+    border-radius: 50%;
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 10px 0 #e0a1b7,
+        0 18px 35px rgba(80, 40, 60, 0.2);
+    animation: popIn 0.4s ease;
+    text-align: center;
+}
+
+.result-value {
+    width: 100%;
+    color: #bd6688;
+    font-size: 45px;
+    font-weight: bold;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: center;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 600px) {
+    .result-value {
+        font-size: 36px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <div class="scene-wrapper" id="sceneWrapper">
+        <canvas id="scene"></canvas>
+    </div>
+</div>
+
+<!-- 結果視窗 -->
+
+<div class="result-overlay" id="resultOverlay">
+    <div class="result-card">
+        <div class="result-value" id="resultValue">
+            選項
+        </div>
+    </div>
+</div>
+
+<script type="module">
+
+import * as THREE from
+"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+
+
+/* =====================================
+   基本設定
+===================================== */
+
+const canvas = document.getElementById("scene");
+const sceneWrapper = document.getElementById("sceneWrapper");
+const resultOverlay = document.getElementById("resultOverlay");
+const resultValue = document.getElementById("resultValue");
+
+const SLOT_COUNT = 30;
+
+const TURNS = 3.5;
+const RADIUS = 9;
+const START_HEIGHT = 13;
+const TOTAL_DROP = 10.5;
+
+const ROAD_WIDTH = 4.2;
+const BALL_RADIUS = 0.52;
+
+const START_PROGRESS = -0.11;
+
+const ROLL_DURATION = 12000;
+const FALL_DURATION = 900;
+
+
+/* =====================================
+   預設選項
+===================================== */
+
+const defaultOptions = Array.from(
+    { length: 30 },
+    (_, i) => `選項 ${i + 1}`
+);
+
+let assignments = [];
+
+
+/* =====================================
+   馬卡龍道路顏色
+===================================== */
+
+const roadColors = [
+    "#F3AFC4",
+    "#D6B9EF",
+    "#AFCFED",
+    "#F4D28F",
+    "#A9D8C5",
+    "#F2B69F",
+    "#D8B9E8",
+    "#EFAFC5",
+    "#A9D2E3",
+    "#E9C5A1",
+    "#B7D9A8",
+    "#E7AFCB",
+    "#BDB9E6",
+    "#F0C88F",
+    "#9CCFC4",
+    "#E5A9A9",
+    "#B6D2EA",
+    "#DDBAE3",
+    "#E9C0A7",
+    "#ADD7BB",
+    "#E5A9BF",
+    "#C5B5E4",
+    "#A8D0D3",
+    "#F0D19A",
+    "#E4B7A6",
+    "#B7C8E8",
+    "#E8B8D0",
+    "#B0D7CA",
+    "#E7CB9A",
+    "#CBB3E7"
+];
+
+
+/* =====================================
+   Three.js 場景
+===================================== */
+
+const scene = new THREE.Scene();
+
+scene.background = new THREE.Color("#f7e4ed");
+scene.fog = new THREE.Fog("#f7e4ed", 30, 75);
+
+const camera = new THREE.PerspectiveCamera(
+    55,
+    1,
+    0.1,
+    150
+);
+
+const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: false
+});
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+
+
+/* =====================================
+   光線
+===================================== */
+
+const ambientLight = new THREE.HemisphereLight(
+    0xffffff,
+    0xe2a9c1,
+    2.1
+);
+
+scene.add(ambientLight);
+
+const mainLight = new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+mainLight.position.set(12, 22, 12);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.set(2048, 2048);
+
+scene.add(mainLight);
+
+const fillLight = new THREE.DirectionalLight(
+    0xffd8e7,
+    1.5
+);
+
+fillLight.position.set(-12, 10, -10);
+scene.add(fillLight);
+
+
+/* =====================================
+   地面
+===================================== */
+
+const ground = new THREE.Mesh(
+    new THREE.CircleGeometry(30, 80),
+    new THREE.MeshStandardMaterial({
+        color: "#f5dce7",
+        roughness: 0.95
+    })
+);
+
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.4;
+ground.receiveShadow = true;
+
+scene.add(ground);
+
+
+/* =====================================
+   螺旋道路路徑
+===================================== */
+
+function getPoint(t) {
+
+    const angle = -Math.PI / 2 + t * Math.PI * 2 * TURNS;
+
+    return new THREE.Vector3(
+        RADIUS * Math.cos(angle),
+        START_HEIGHT - t * TOTAL_DROP,
+        RADIUS * Math.sin(angle)
+    );
+}
+
+function getTangent(t) {
+
+    const angle = -Math.PI / 2 + t * Math.PI * 2 * TURNS;
+
+    const tangent = new THREE.Vector3(
+        -RADIUS * Math.sin(angle) * Math.PI * 2 * TURNS,
+        -TOTAL_DROP,
+        RADIUS * Math.cos(angle) * Math.PI * 2 * TURNS
+    );
+
+    return tangent.normalize();
+}
+
+function getSide(t) {
+
+    const angle = -Math.PI / 2 + t * Math.PI * 2 * TURNS;
+
+    return new THREE.Vector3(
+        Math.cos(angle),
+        0,
+        Math.sin(angle)
+    ).normalize();
+}
+
+
+/* =====================================
+   建立道路幾何
+===================================== */
+
+function createRoadSegment(start, end, color) {
+
+    const positions = [];
+    const indices = [];
+
+    const divisions = 10;
+
+    for (let i = 0; i <= divisions; i++) {
+
+        const t = start + (end - start) * i / divisions;
+
+        const center = getPoint(t);
+        const side = getSide(t);
+
+        const left = center.clone().addScaledVector(
+            side,
+            -ROAD_WIDTH / 2
+        );
+
+        const right = center.clone().addScaledVector(
+            side,
+            ROAD_WIDTH / 2
+        );
+
+        left.y += 0.05;
+        right.y += 0.05;
+
+        positions.push(
+            left.x, left.y, left.z,
+            right.x, right.y, right.z
+        );
+    }
+
+    for (let i = 0; i < divisions; i++) {
+
+        const a = i * 2;
+        const b = a + 1;
+        const c = a + 2;
+        const d = a + 3;
+
+        indices.push(
+            a, c, b,
+            b, c, d
+        );
+    }
+
+    const geometry = new THREE.BufferGeometry();
+
+    geometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3)
+    );
+
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.65,
+        metalness: 0.02,
+        side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+
+    scene.add(mesh);
+
+    return mesh;
+}
+
+
+/* =====================================
+   道路邊緣欄杆
+===================================== */
+
+function createRail(tStart, tEnd, sideValue) {
+
+    const points = [];
+    const divisions = 300;
+
+    for (let i = 0; i <= divisions; i++) {
+
+        const t = tStart + (tEnd - tStart) * i / divisions;
+
+        const p = getPoint(t);
+        const side = getSide(t);
+
+        p.addScaledVector(
+            side,
+            sideValue * (ROAD_WIDTH / 2)
+        );
+
+        p.y += 0.55;
+
+        points.push(p);
+    }
+
+    const curve = new THREE.CatmullRomCurve3(points);
+
+    const geometry = new THREE.TubeGeometry(
+        curve,
+        divisions,
+        0.085,
+        8,
+        false
+    );
+
+    const material = new THREE.MeshStandardMaterial({
+        color: "#fff7fa",
+        roughness: 0.35,
+        metalness: 0.1
+    });
+
+    const rail = new THREE.Mesh(geometry, material);
+
+    rail.castShadow = true;
+
+    scene.add(rail);
+}
+
+
+/* =====================================
+   支撐柱
+===================================== */
+
+function createSupports() {
+
+    const supportMaterial = new THREE.MeshStandardMaterial({
+        color: "#e8bdce",
+        roughness: 0.8
+    });
+
+    const columnGeometry = new THREE.CylinderGeometry(
+        0.22,
+        0.28,
+        1,
+        12
+    );
+
+    for (let i = 0; i < 28; i++) {
+
+        const t = i / 28;
+
+        const p = getPoint(t);
+        const side = getSide(t);
+
+        const columnPosition = p.clone().addScaledVector(
+            side,
+            ROAD_WIDTH / 2 + 0.45
+        );
+
+        const height = p.y + 0.1;
+
+        if (height <= 0) continue;
+
+        const column = new THREE.Mesh(
+            columnGeometry,
+            supportMaterial
+        );
+
+        column.position.set(
+            columnPosition.x,
+            height / 2,
+            columnPosition.z
+        );
+
+        column.scale.y = height;
+
+        column.castShadow = true;
+        column.receiveShadow = true;
+
+        scene.add(column);
+    }
+}
+
+
+/* =====================================
+   建立整座螺旋道路
+===================================== */
+
+function buildGarage() {
+
+    createRoadSegment(
+        START_PROGRESS,
+        0,
+        "#f6d5e1"
+    );
+
+    for (let i = 0; i < SLOT_COUNT; i++) {
+
+        const start = i / SLOT_COUNT;
+        const end = (i + 1) / SLOT_COUNT;
+
+        createRoadSegment(
+            start,
+            end,
+            roadColors[i]
+        );
+    }
+
+    createRail(START_PROGRESS, 1, -1);
+    createRail(START_PROGRESS, 1, 1);
+
+    createSupports();
+}
+
+
+/* =====================================
+   球體
+===================================== */
+
+const ballGroup = new THREE.Group();
+
+scene.add(ballGroup);
+
+const ballGeometry = new THREE.SphereGeometry(
+    BALL_RADIUS,
+    48,
+    48
+);
+
+const ballMaterial = new THREE.MeshPhysicalMaterial({
+    color: "#FF82B5",
+    roughness: 0.28,
+    metalness: 0,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.2,
+    emissive: "#F75F9D",
+    emissiveIntensity: 0.04
+});
+
+const ball = new THREE.Mesh(
+    ballGeometry,
+    ballMaterial
+);
+
+ball.castShadow = true;
+ball.receiveShadow = true;
+
+ballGroup.add(ball);
+
+
+/* =====================================
+   球體柔和橢圓陰影
+===================================== */
+
+const shadowCanvas = document.createElement("canvas");
+
+shadowCanvas.width = 128;
+shadowCanvas.height = 128;
+
+const shadowContext = shadowCanvas.getContext("2d");
+
+const shadowGradient = shadowContext.createRadialGradient(
+    64, 64, 5,
+    64, 64, 64
+);
+
+shadowGradient.addColorStop(
+    0,
+    "rgba(105, 65, 85, 0.42)"
+);
+
+shadowGradient.addColorStop(
+    0.35,
+    "rgba(105, 65, 85, 0.25)"
+);
+
+shadowGradient.addColorStop(
+    0.7,
+    "rgba(105, 65, 85, 0.08)"
+);
+
+shadowGradient.addColorStop(
+    1,
+    "rgba(105, 65, 85, 0)"
+);
+
+shadowContext.fillStyle = shadowGradient;
+
+shadowContext.fillRect(
+    0,
+    0,
+    128,
+    128
+);
+
+const shadowTexture = new THREE.CanvasTexture(
+    shadowCanvas
+);
+
+shadowTexture.colorSpace = THREE.SRGBColorSpace;
+
+const shadowMaterial = new THREE.MeshBasicMaterial({
+    map: shadowTexture,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2
+});
+
+const ballShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.8, 1.15),
+    shadowMaterial
+);
+
+ballShadow.renderOrder = 2;
+
+scene.add(ballShadow);
+
+
+/* =====================================
+   球體與鏡頭位置
+===================================== */
+
+let currentProgress = START_PROGRESS;
+let cameraReady = false;
+
+const shadowRotationMatrix = new THREE.Matrix4();
+
+const roadNormal = new THREE.Vector3();
+
+const shadowPosition = new THREE.Vector3();
+
+function updateBallPosition(t) {
+
+    currentProgress = t;
+
+    const p = getPoint(t);
+
+    p.y += BALL_RADIUS + 0.06;
+
+    ballGroup.position.copy(p);
+
+    const tangent = getTangent(t);
+    const side = getSide(t);
+
+    roadNormal
+        .crossVectors(tangent, side)
+        .normalize();
+
+    shadowPosition.copy(getPoint(t));
+
+    shadowPosition.addScaledVector(
+        roadNormal,
+        0.035
+    );
+
+    ballShadow.position.copy(shadowPosition);
+
+    shadowRotationMatrix.makeBasis(
+        tangent,
+        side,
+        roadNormal
+    );
+
+    ballShadow.quaternion.setFromRotationMatrix(
+        shadowRotationMatrix
+    );
+
+    ballShadow.scale.set(1, 1, 1);
+
+    ballShadow.material.opacity = 0.85;
+}
+
+
+/* =====================================
+   固定在球體後方的追蹤鏡頭
+===================================== */
+
+function updateCamera(smooth = true) {
+
+    const p = ballGroup.position.clone();
+
+    const tangent = getTangent(currentProgress);
+
+    const horizontalDirection = new THREE.Vector3(
+        tangent.x,
+        0,
+        tangent.z
+    ).normalize();
+
+    const cameraPosition = p.clone();
+
+    cameraPosition.addScaledVector(
+        horizontalDirection,
+        -7
+    );
+
+    cameraPosition.y = p.y + 2.7;
+
+    const lookTarget = p.clone();
+
+    lookTarget.addScaledVector(
+        horizontalDirection,
+        4
+    );
+
+    lookTarget.y = p.y + 0.2;
+
+    if (!cameraReady || !smooth) {
+
+        camera.position.copy(cameraPosition);
+        cameraReady = true;
+
+    } else {
+
+        camera.position.lerp(
+            cameraPosition,
+            0.12
+        );
+    }
+
+    camera.lookAt(lookTarget);
+}
+
+
+/* =====================================
+   隨機排列
+===================================== */
+
+function shuffle(array) {
+
+    const result = [...array];
+
+    for (let i = result.length - 1; i > 0; i--) {
+
+        const j = Math.floor(Math.random() * (i + 1));
+
+        [result[i], result[j]] = [
+            result[j],
+            result[i]
+        ];
+    }
+
+    return result;
+}
+
+function assignOptions() {
+
+    assignments = shuffle(defaultOptions);
+}
+
+
+/* =====================================
+   球球回到起點
+===================================== */
+
+function resetBall() {
+
+    updateBallPosition(START_PROGRESS);
+
+    ball.quaternion.identity();
+
+    ballShadow.scale.set(1, 1, 1);
+    ballShadow.material.opacity = 0.85;
+
+    cameraReady = false;
+
+    updateCamera(false);
+}
+
+
+/* =====================================
+   動畫狀態
+===================================== */
+
+let isRunning = false;
+let isStopping = false;
+let isFalling = false;
+
+let animationFrame = null;
+let animationStartTime = 0;
+
+let previousProgress = START_PROGRESS;
+
+let fallStartTime = 0;
+let fallStartY = 0;
+
+
+/* =====================================
+   球體滾動
+===================================== */
+
+function rollBall(distance, progress) {
+
+    if (distance <= 0) return;
+
+    const tangent = getTangent(progress);
+
+    const rollAxis = new THREE.Vector3();
+
+    rollAxis.crossVectors(
+        new THREE.Vector3(0, 1, 0),
+        tangent
+    ).normalize();
+
+    const rotation = new THREE.Quaternion();
+
+    rotation.setFromAxisAngle(
+        rollAxis,
+        distance / BALL_RADIUS
+    );
+
+    ball.quaternion.premultiply(rotation);
+}
+
+
+/* =====================================
+   更新球體移動
+===================================== */
+
+function moveBallTo(progress) {
+
+    const oldPoint = getPoint(previousProgress);
+    const newPoint = getPoint(progress);
+
+    const distance = oldPoint.distanceTo(newPoint);
+
+    rollBall(distance, progress);
+
+    updateBallPosition(progress);
+    updateCamera(true);
+
+    previousProgress = progress;
+}
+
+
+/* =====================================
+   開始移動
+===================================== */
+
+function startGame() {
+
+    if (isRunning) return;
+
+    isRunning = true;
+    isStopping = false;
+    isFalling = false;
+
+    resultOverlay.classList.remove("show");
+
+    sceneWrapper.classList.add("running");
+
+    resetBall();
+
+    previousProgress = START_PROGRESS;
+
+    assignOptions();
+
+    animationStartTime = performance.now();
+
+    function animate(now) {
+
+        if (!isRunning || isStopping || isFalling) return;
+
+        const elapsed = now - animationStartTime;
+
+        const t = Math.min(
+            elapsed / ROLL_DURATION,
+            1
+        );
+
+        const progress =
+            START_PROGRESS +
+            (1 - START_PROGRESS) * t;
+
+        moveBallTo(progress);
+
+        if (t < 1) {
+
+            animationFrame = requestAnimationFrame(animate);
+
+        } else {
+
+            updateBallPosition(1);
+            updateCamera(false);
+
+            previousProgress = 1;
+
+            animationFrame = null;
+
+            fallBall();
+        }
+    }
+
+    animationFrame = requestAnimationFrame(animate);
+}
+
+
+/* =====================================
+   抵達底部後掉落到地面
+===================================== */
+
+function fallBall() {
+
+    if (!isRunning || isStopping || isFalling) return;
+
+    isFalling = true;
+
+    fallStartTime = performance.now();
+    fallStartY = ballGroup.position.y;
+
+    const groundY = -0.4 + BALL_RADIUS;
+
+    const startShadowOpacity = 0.85;
+
+    function fallingAnimation(now) {
+
+        const elapsed = now - fallStartTime;
+
+        const t = Math.min(
+            elapsed / FALL_DURATION,
+            1
+        );
+
+        const eased = t * t;
+
+        ballGroup.position.y =
+            fallStartY +
+            (groundY - fallStartY) * eased;
+
+        ball.rotation.x += 0.12;
+        ball.rotation.z += 0.08;
+
+        const shadowScale = 1 + (1 - eased) * 0.5;
+
+        ballShadow.scale.set(
+            shadowScale,
+            shadowScale,
+            1
+        );
+
+        ballShadow.position.set(
+            ballGroup.position.x,
+            -0.37,
+            ballGroup.position.z
+        );
+
+        ballShadow.material.opacity =
+            startShadowOpacity * (0.45 + eased * 0.55);
+
+        ballShadow.rotation.set(
+            -Math.PI / 2,
+            0,
+            0
+        );
+
+        updateCamera(true);
+
+        if (t < 1) {
+
+            animationFrame = requestAnimationFrame(
+                fallingAnimation
+            );
+
+        } else {
+
+    ballGroup.position.y = groundY;
+
+    ballShadow.position.set(
+        ballGroup.position.x,
+        -0.37,
+        ballGroup.position.z
+    );
+
+    ballShadow.scale.set(1, 1, 1);
+    ballShadow.material.opacity = 0.85;
+
+    animationFrame = null;
+
+    // 自然落地：顯示沒有
+    isRunning = false;
+    isStopping = false;
+    isFalling = false;
+
+    sceneWrapper.classList.remove("running");
+
+    resultValue.textContent = "請提早按";
+
+    resultOverlay.classList.add("show");
+}
+    }
+
+    animationFrame = requestAnimationFrame(
+        fallingAnimation
+    );
+}
+
+
+/* =====================================
+   使用者點擊後立即停止
+===================================== */
+
+function stopGame() {
+
+    if (!isRunning || isStopping) return;
+
+    isStopping = true;
+
+    // 取消目前動畫，包括球體掉落動畫
+    if (animationFrame !== null) {
+
+        cancelAnimationFrame(animationFrame);
+
+        animationFrame = null;
+    }
+
+    // 根據球球目前所在的道路區段決定結果
+    const selectedIndex = Math.max(
+        0,
+        Math.min(
+            SLOT_COUNT - 1,
+            Math.floor(currentProgress * SLOT_COUNT)
+        )
+    );
+
+    finishGame(selectedIndex);
+}
+
+
+/* =====================================
+   抽選完成
+===================================== */
+
+function finishGame(index) {
+
+    isRunning = false;
+    isStopping = false;
+    isFalling = false;
+
+    sceneWrapper.classList.remove("running");
+
+    const selectedOption = assignments[index];
+
+    resultValue.textContent = selectedOption;
+
+    resultOverlay.classList.add("show");
+}
+
+
+/* =====================================
+   點擊螢幕任意位置開始或停止
+===================================== */
+
+document.addEventListener("pointerdown", (event) => {
+
+    // 結果視窗內的點擊只負責關閉結果
+    if (resultOverlay.contains(event.target)) return;
+
+    event.preventDefault();
+
+    // 遊戲進行中：立即停止
+    if (isRunning && !isStopping) {
+
+        stopGame();
+
+        return;
+    }
+
+    // 遊戲尚未開始：開始滾動
+    if (!isRunning && !resultOverlay.classList.contains("show")) {
+
+        startGame();
+    }
+
+}, { passive: false });
+
+
+/* =====================================
+   點擊結果視窗後回到初始畫面
+===================================== */
+
+resultOverlay.addEventListener("click", () => {
+
+    resultOverlay.classList.remove("show");
+
+    if (animationFrame !== null) {
+
+        cancelAnimationFrame(animationFrame);
+
+        animationFrame = null;
+    }
+
+    isRunning = false;
+    isStopping = false;
+    isFalling = false;
+
+    currentProgress = START_PROGRESS;
+    previousProgress = START_PROGRESS;
+
+    sceneWrapper.classList.remove("running");
+
+    resetBall();
+
+});
+
+
+/* =====================================
+   畫面尺寸調整
+===================================== */
+
+function resize() {
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.setSize(width, height, false);
+}
+
+window.addEventListener("resize", resize);
+
+
+/* =====================================
+   主動畫
+===================================== */
+
+function render() {
+
+    renderer.render(scene, camera);
+
+    requestAnimationFrame(render);
+}
+
+
+/* =====================================
+   初始化
+===================================== */
+
+buildGarage();
+
+assignOptions();
+
+resetBall();
+
+resize();
+
+render();
+
+</script>
+
+</body>
+</html>

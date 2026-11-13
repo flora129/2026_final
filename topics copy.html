@@ -1,0 +1,1851 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜探索台灣</title>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --pink:#f3b5c9;
+  --deep:#d77f9e;
+  --light:#ffe8ef;
+  --cream:#fff8ef;
+  --brown:#654b4b;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  margin:0;
+  color:var(--brown);
+  font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;
+  background:#f6df8f;
+}
+
+button,select{font:inherit}
+
+.page{
+  width:min(1200px,94%);
+  margin:auto;
+  padding:38px 0 70px;
+}
+
+header{
+  text-align:center;
+  margin-bottom:25px;
+}
+
+h1{
+  font-size:clamp(28px,5vw,44px);
+  margin:0;
+  color:#bd718b;
+  letter-spacing:3px;
+}
+
+.subtitle{
+  color:#987d7d;
+  margin-top:10px;
+  font-size:14px;
+}
+
+.filter-panel{
+  padding:22px 0;
+  margin-bottom:25px;
+}
+
+.filter-title{
+  font-weight:800;
+  margin-bottom:12px;
+}
+
+.region-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-bottom:18px;
+}
+
+.region-btn{
+  border:2px solid #80635e;
+  background:#fff;
+  color:#765b55;
+  border-radius:30px;
+  padding:9px 19px;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.region-btn:hover,
+.region-btn.active{
+  background:#f3c4d3;
+  transform:translateY(-2px);
+  box-shadow:0 3px 0 #d99caf;
+}
+
+.select-row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+select{
+  flex:1;
+  min-width:180px;
+  padding:12px 15px;
+  border:2px solid #80635e;
+  border-radius:14px;
+  color:#765b55;
+  background:white;
+}
+
+.search-btn{
+  border:2px solid #765b55;
+  background:#d77f9e;
+  color:white;
+  border-radius:14px;
+  padding:12px 30px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 4px 0 #a85f7c;
+}
+
+.map-panel{
+  background:transparent;
+  padding:15px 0;
+  position:relative;
+}
+
+#mapSvg{
+  width:100%;
+  height:auto;
+  display:block;
+  overflow:visible;
+}
+
+/* 全螢幕地圖 */
+
+.map-panel.focus-mode{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  width:100vw;
+  height:100vh;
+  height:100dvh;
+  margin:0;
+  padding:0;
+  background:#f6df8f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.map-panel.focus-mode #mapSvg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  max-height:none;
+  display:block;
+  overflow:hidden;
+  touch-action:none;
+  cursor:grab;
+  user-select:none;
+}
+
+.map-panel.focus-mode #mapSvg.is-dragging{
+  cursor:grabbing;
+}
+
+/* 返回按鈕 */
+
+.map-back-btn{
+  display:none;
+  position:fixed;
+  top:18px;
+  left:18px;
+  z-index:10001;
+  border:2px solid #765b55;
+  border-radius:30px;
+  padding:11px 24px;
+  background:#fff8ef;
+  color:#765b55;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 4px 0 #d99caf;
+  white-space:nowrap;
+}
+
+.map-panel.focus-mode .map-back-btn{
+  display:block;
+}
+
+.loading{
+  text-align:center;
+  padding:70px 10px;
+  color:#8c7770;
+}
+
+.county-fill{
+  stroke:none;
+  cursor:pointer;
+  transition:opacity .3s,filter .3s,fill .3s;
+}
+
+.county-fill:hover{
+  filter:brightness(1.08);
+}
+
+.county-fill.dimmed{
+  opacity:.18;
+}
+
+.county-fill.selected{
+  fill:#f17da5 !important;
+  opacity:1 !important;
+  filter:drop-shadow(0 8px 8px #a85f7c80);
+}
+
+.county-border{
+  fill:none;
+  stroke:#765b55;
+  stroke-width:1.45;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+  vector-effect:non-scaling-stroke;
+  pointer-events:none;
+}
+
+.outer-border{
+  fill:none;
+  stroke:#765b55;
+  stroke-width:2.6;
+  stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
+  pointer-events:none;
+}
+
+.selected-outline{
+  fill:none;
+  stroke:#a74770;
+  stroke-width:3.5;
+  stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
+  pointer-events:none;
+}
+
+.county-label{
+  font-size:12px;
+  fill:#654b4b;
+  font-weight:800;
+  text-anchor:middle;
+  pointer-events:none;
+  paint-order:stroke;
+  stroke:#fff8ef;
+  stroke-width:3px;
+  stroke-linejoin:round;
+}
+
+.map-panel.focus-mode .county-label{
+  display:none;
+}
+
+/* 景點圓點 */
+
+.attraction-marker{
+  fill:#e86f9b;
+  stroke:#fff8ef;
+  stroke-width:1.5;
+  cursor:pointer;
+  vector-effect:non-scaling-stroke;
+  filter:drop-shadow(0 1px 2px #765b5570);
+}
+
+.attraction-marker:hover{
+  fill:#bd456f;
+  stroke:#fff;
+  stroke-width:2.5;
+}
+
+.attraction-marker:focus{
+  outline:none;
+  fill:#bd456f;
+}
+
+/* 景點名稱 */
+
+.attraction-label{
+  fill:#654b4b;
+  font-size:12px;
+  font-weight:800;
+  text-anchor:start;
+  pointer-events:none;
+  paint-order:stroke;
+  stroke:#fff8ef;
+  stroke-width:3.5px;
+  stroke-linejoin:round;
+  display:none;
+}
+
+/* 景點資訊卡 */
+
+.attraction-popup{
+  position:absolute;
+  z-index:10002;
+  display:none;
+  width:280px;
+  background:#fffdf9;
+  border:2px solid #d77f9e;
+  border-radius:17px;
+  overflow:hidden;
+  box-shadow:0 6px 22px #765b5540;
+  color:#654b4b;
+}
+
+.attraction-popup.show{
+  display:block;
+  animation:popupIn .18s ease-out;
+}
+
+@keyframes popupIn{
+  from{
+    opacity:0;
+    transform:translateY(6px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.popup-image-wrap{
+  width:100%;
+  height:155px;
+  position:relative;
+  background:#f5dce4;
+  overflow:hidden;
+}
+
+.popup-image{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.popup-image-placeholder{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#a77e8b;
+  font-size:13px;
+}
+
+.popup-close{
+  position:absolute;
+  top:9px;
+  right:9px;
+  width:29px;
+  height:29px;
+  border:0;
+  border-radius:50%;
+  background:#fffdf9eF;
+  color:#765b55;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 2px 6px #654b4b25;
+}
+
+.popup-content{
+  padding:13px 15px 15px;
+}
+
+.popup-title{
+  font-size:17px;
+  font-weight:900;
+  margin:0 0 12px;
+  color:#765b55;
+  padding-right:10px;
+}
+
+.popup-duration{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:10px 0;
+  border-top:1px solid #f0dce1;
+  border-bottom:1px solid #f0dce1;
+  font-size:12px;
+  color:#987d7d;
+}
+
+.popup-duration strong{
+  color:#765b55;
+  font-size:13px;
+}
+
+.popup-map-link{
+  display:block;
+  text-align:center;
+  margin-top:12px;
+  padding:10px;
+  background:#d77f9e;
+  color:white;
+  border-radius:10px;
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+  transition:.2s;
+}
+
+.popup-map-link:hover{
+  background:#bd718b;
+}
+
+/* 推薦結果 */
+
+.result{
+  margin-top:28px;
+  display:none;
+  animation:fadeUp .5s ease both;
+}
+
+.result.show{display:block}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.result-header{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.result-header h2{
+  color:#bd718b;
+  font-size:30px;
+  margin:0 0 8px;
+}
+
+.result-header p{
+  margin:0;
+  color:#927b79;
+}
+
+.category-title{
+  font-size:22px;
+  color:#bd718b;
+  margin:28px 0 14px;
+  font-weight:900;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px;
+}
+
+.card{
+  background:#fffdf9;
+  border:2px solid #80635e;
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:4px 5px 0 #e7c5c7;
+}
+
+.card-content{padding:15px}
+
+.card h3{
+  margin:0 0 8px;
+  color:#765b55;
+}
+
+.card p{
+  font-size:13px;
+  line-height:1.7;
+  color:#927b79;
+  margin:0 0 10px;
+}
+
+.card a{
+  color:#bd718b;
+  font-size:13px;
+  font-weight:bold;
+  text-decoration:none;
+}
+
+.card a:hover{text-decoration:underline}
+
+.empty{
+  color:#927b79;
+  font-size:14px;
+}
+
+.back-btn{
+  display:block;
+  margin:25px auto 0;
+  padding:10px 25px;
+  border:2px solid #765b55;
+  border-radius:30px;
+  background:#fff;
+  color:#765b55;
+  cursor:pointer;
+}
+
+@media(max-width:600px){
+  .page{
+    width:94%;
+    padding-top:25px;
+  }
+
+  .filter-panel{padding:16px 0}
+
+  .search-btn{width:100%}
+
+  .map-panel{padding:6px 0}
+
+  .county-label{font-size:10px}
+
+  .map-back-btn{
+    top:12px;
+    left:12px;
+    padding:9px 18px;
+    font-size:13px;
+  }
+
+  .attraction-popup{
+    width:250px;
+  }
+
+  .popup-image-wrap{
+    height:135px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+<header>
+  <h1>PickMe｜探索台灣</h1>
+  <div class="subtitle">一起發現台灣各地的美食與風景</div>
+</header>
+
+<section class="filter-panel">
+  <div class="filter-title">① 選擇探索地區</div>
+  <div class="region-list" id="regionList"></div>
+
+  <div class="filter-title">② 選擇縣市</div>
+
+  <div class="select-row">
+    <select id="citySelect">
+      <option value="">全部縣市</option>
+    </select>
+
+    <button class="search-btn" id="searchBtn">開始探索</button>
+  </div>
+</section>
+
+<section class="map-panel" id="mapPanel">
+
+  <button class="map-back-btn" id="mapBackBtn">
+    ← 返回台灣地圖
+  </button>
+
+  <div id="loading" class="loading">
+    正在載入完整台灣行政區界線⋯
+  </div>
+
+  <svg
+    id="mapSvg"
+    viewBox="0 0 1000 760"
+    preserveAspectRatio="xMidYMid meet"
+    role="img"
+    aria-label="台灣22縣市互動地圖與台北景點"
+    style="display:none"
+  >
+    <defs>
+      <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow
+          dx="0" dy="5" stdDeviation="3"
+          flood-color="#8b6d66" flood-opacity=".25"
+        />
+      </filter>
+    </defs>
+    <g id="mapWorld"></g>
+  </svg>
+
+  <!-- HTML 景點資訊卡：獨立於 SVG 地圖縮放圖層 -->
+
+  <div class="attraction-popup" id="attractionPopup">
+
+    <div class="popup-image-wrap">
+      <img
+        class="popup-image"
+        id="popupImage"
+        alt="景點照片"
+        style="display:none"
+      >
+
+      <div class="popup-image-placeholder" id="popupImagePlaceholder">
+        正在載入景點照片⋯
+      </div>
+
+      <button
+        class="popup-close"
+        id="popupClose"
+        aria-label="關閉資訊卡"
+      >×</button>
+    </div>
+
+    <div class="popup-content">
+
+      <h3 class="popup-title" id="popupTitle"></h3>
+
+      <div class="popup-duration">
+        <span>建議停留時間</span>
+        <strong id="popupDuration"></strong>
+      </div>
+
+      <a
+        class="popup-map-link"
+        id="popupMapLink"
+        href="#"
+        target="_blank"
+        rel="noopener"
+      >
+        在 Google Maps 查看地點 ↗
+      </a>
+
+    </div>
+  </div>
+
+</section>
+
+<section class="result" id="result">
+  <div class="result-header">
+    <h2 id="resultCity"></h2>
+    <p id="resultDescription"></p>
+  </div>
+
+  <div class="category-title">在地美食推薦</div>
+  <div class="cards" id="foodCards"></div>
+
+  <div class="category-title">特色景點推薦</div>
+  <div class="cards" id="spotCards"></div>
+
+  <button class="back-btn" id="backBtn">返回台灣地圖</button>
+</section>
+
+</div>
+
+<script>
+
+/* 1. 地區分類 */
+
+const regions={
+  "北部":["臺北市","新北市","基隆市","桃園市","新竹市","新竹縣","宜蘭縣"],
+  "中部":["苗栗縣","臺中市","彰化縣","南投縣","雲林縣"],
+  "南部":["嘉義市","嘉義縣","臺南市","高雄市","屏東縣"],
+  "東部":["花蓮縣","臺東縣"],
+  "離島":["澎湖縣","金門縣","連江縣"]
+};
+
+const allCities=Object.values(regions).flat();
+
+let selectedRegion="";
+let selectedCity="";
+let topology=null;
+let features=[];
+let projection;
+let path;
+let world=d3.select("#mapWorld");
+let mainLayer;
+let mainFeatures=[];
+let isFocusMode=false;
+let currentSearchToken=0;
+let zoomResizeTimer=null;
+
+/* 地圖縮放與拖曳狀態 */
+
+let currentMapTransform=d3.zoomIdentity;
+let baseCityScale=1;
+let dragStartPoint=null;
+let dragStartTransform=null;
+let hasDragged=false;
+let selectedAttraction=null;
+let popupRequestToken=0;
+
+const palette=[
+  "#f6d1d9","#f7dfbd","#d7ead0",
+  "#d4e9ee","#e8d9ee","#f2e5c9"
+];
+
+/* 2. 台北25個景點資料 */
+
+const taipeiAttractions=[
+  {name:"臺北101",lat:25.03396,lon:121.56447,duration:"1～2 小時",wiki:"台北101"},
+  {name:"國父紀念館",lat:25.04062,lon:121.55796,duration:"1～1.5 小時",wiki:"國父紀念館"},
+  {name:"中正紀念堂",lat:25.03473,lon:121.52193,duration:"1～2 小時",wiki:"國立中正紀念堂"},
+  {name:"西門町",lat:25.04210,lon:121.50700,duration:"2～3 小時",wiki:"西門町"},
+  {name:"大稻埕碼頭",lat:25.056615,lon:121.50714,duration:"1～1.5 小時",wiki:"大稻埕"},
+  {name:"松山文創園區",lat:25.04400,lon:121.56000,duration:"1.5～2 小時",wiki:"松山文創園區"},
+  {name:"華山1914文創園區",lat:25.04400,lon:121.52900,duration:"1.5～2 小時",wiki:"華山1914文化創意產業園區"},
+  {name:"迪化街",lat:25.05970,lon:121.51000,duration:"1～2 小時",wiki:"迪化街"},
+  {name:"剝皮寮歷史街區",lat:25.036838,lon:121.50216,duration:"1～1.5 小時",wiki:"剝皮寮歷史街區"},
+  {name:"榕錦時光生活園區",lat:25.02600,lon:121.52200,duration:"1～1.5 小時",wiki:"榕錦時光生活園區"},
+  {name:"赤峰街",lat:25.05400,lon:121.52000,duration:"1～2 小時",wiki:"赤峰街"},
+  {name:"陽明山國家公園",lat:25.15579,lon:121.547742,duration:"3～5 小時",wiki:"陽明山國家公園"},
+  {name:"擎天崗草原",lat:25.16600,lon:121.56389,duration:"1.5～2 小時",wiki:"擎天崗"},
+  {name:"象山步道",lat:25.02700,lon:121.57000,duration:"1～2 小時",wiki:"象山 (臺北市)"},
+  {name:"大安森林公園",lat:25.03000,lon:121.53600,duration:"1～1.5 小時",wiki:"大安森林公園"},
+  {name:"北投地熱谷",lat:25.13700,lon:121.51400,duration:"30～60 分鐘",wiki:"地熱谷"},
+  {name:"貓空",lat:24.96831,lon:121.587935,duration:"2～3 小時",wiki:"貓空"},
+  {name:"國立故宮博物院",lat:25.102219,lon:121.548618,duration:"2～3 小時",wiki:"國立故宮博物院"},
+  {name:"臺北市立美術館",lat:25.072167,lon:121.524229,duration:"1.5～2 小時",wiki:"臺北市立美術館"},
+  {name:"臺北植物園",lat:25.032205,lon:121.509884,duration:"1～1.5 小時",wiki:"臺北植物園"},
+  {name:"國家兩廳院",lat:25.03704,lon:121.519256,duration:"1～1.5 小時",wiki:"國家兩廳院"},
+  {name:"臺北市立動物園",lat:24.998855,lon:121.581058,duration:"3～5 小時",wiki:"臺北市立動物園"},
+  {name:"兒童新樂園",lat:25.09600,lon:121.51400,duration:"2～4 小時",wiki:"臺北市立兒童新樂園"},
+  {name:"士林夜市",lat:25.08700,lon:121.52400,duration:"1.5～2 小時",wiki:"士林夜市"},
+  {name:"寧夏夜市",lat:25.05600,lon:121.51500,duration:"1～1.5 小時",wiki:"寧夏夜市"}
+];
+
+/* 3. 推薦名單 */
+
+const recommendations={
+  "臺北市":{
+    description:"城市風景、文化藝術與經典台灣美食。",
+    foods:[
+      {name:"鼎泰豐",description:"經典小籠包與台灣料理。",query:"鼎泰豐 台北"},
+      {name:"阜杭豆漿",description:"台北知名早餐店。",query:"阜杭豆漿 台北"}
+    ],
+    spots:[
+      {name:"台北101",description:"台北代表性地標。",query:"台北101"},
+      {name:"國立中正紀念堂",description:"具有代表性的歷史建築。",query:"中正紀念堂"}
+    ]
+  },
+  "新北市":{
+    description:"山海景觀、老街與自然風光。",
+    foods:[
+      {name:"淡水阿給",description:"淡水經典在地小吃。",query:"淡水阿給"},
+      {name:"九份芋圓",description:"九份老街代表性甜品。",query:"九份芋圓"}
+    ],
+    spots:[
+      {name:"九份老街",description:"山城老街與海景。",query:"九份老街"},
+      {name:"十分瀑布",description:"自然瀑布景觀。",query:"十分瀑布"}
+    ]
+  },
+  "臺中市":{
+    description:"城市文化、甜點與特色小吃。",
+    foods:[
+      {name:"宮原眼科",description:"知名冰淇淋與甜點。",query:"宮原眼科 台中"},
+      {name:"逢甲夜市",description:"台中代表性夜市。",query:"逢甲夜市"}
+    ],
+    spots:[
+      {name:"高美濕地",description:"知名濕地與夕陽景觀。",query:"高美濕地"},
+      {name:"彩虹眷村",description:"色彩鮮明的藝術景點。",query:"彩虹眷村"}
+    ]
+  },
+  "臺南市":{
+    description:"古都文化、歷史建築與經典小吃。",
+    foods:[
+      {name:"牛肉湯",description:"台南代表性早餐美食。",query:"台南牛肉湯"},
+      {name:"擔仔麵",description:"台南傳統麵食。",query:"台南擔仔麵"}
+    ],
+    spots:[
+      {name:"安平樹屋",description:"老倉庫與榕樹共生的景觀。",query:"安平樹屋"},
+      {name:"奇美博物館",description:"具有特色的博物館建築。",query:"奇美博物館"}
+    ]
+  },
+  "高雄市":{
+    description:"港灣風景、藝術文化與南部美食。",
+    foods:[
+      {name:"鴨肉珍",description:"高雄在地人氣小吃。",query:"鴨肉珍 高雄"},
+      {name:"木瓜牛奶",description:"南部特色飲品。",query:"高雄木瓜牛奶"}
+    ],
+    spots:[
+      {name:"駁二藝術特區",description:"港邊藝術與文創空間。",query:"駁二藝術特區"},
+      {name:"西子灣",description:"高雄海岸與夕陽景觀。",query:"西子灣"}
+    ]
+  },
+  "花蓮縣":{
+    description:"壯麗山海、自然景觀與東部美食。",
+    foods:[
+      {name:"公正街包子",description:"花蓮知名小吃。",query:"公正街包子 花蓮"},
+      {name:"花蓮麻糬",description:"東部特色伴手禮。",query:"花蓮麻糬"}
+    ],
+    spots:[
+      {name:"七星潭",description:"海岸與礫石灘景觀。",query:"七星潭"},
+      {name:"太魯閣國家公園",description:"壯麗峽谷與山岳景觀。",query:"太魯閣國家公園"}
+    ]
+  },
+  "宜蘭縣":{
+    description:"溫泉、田園風景與在地小吃。",
+    foods:[
+      {name:"三星蔥油餅",description:"宜蘭代表性小吃。",query:"宜蘭三星蔥油餅"},
+      {name:"羅東肉羹",description:"宜蘭在地傳統料理。",query:"羅東肉羹"}
+    ],
+    spots:[
+      {name:"幾米公園",description:"幾米主題公共藝術空間。",query:"宜蘭幾米公園"},
+      {name:"礁溪溫泉",description:"宜蘭知名溫泉區。",query:"礁溪溫泉"}
+    ]
+  }
+};
+
+allCities.forEach(city=>{
+  if(!recommendations[city]){
+    recommendations[city]={
+      description:"探索這個縣市的在地美食與特色景點。",
+      foods:[],
+      spots:[]
+    };
+  }
+});
+
+/* 4. 篩選器 */
+
+const regionList=document.getElementById("regionList");
+const citySelect=document.getElementById("citySelect");
+const mapPanel=document.getElementById("mapPanel");
+const mapSvg=document.getElementById("mapSvg");
+
+const popup=document.getElementById("attractionPopup");
+const popupImage=document.getElementById("popupImage");
+const popupImagePlaceholder=document.getElementById("popupImagePlaceholder");
+const popupTitle=document.getElementById("popupTitle");
+const popupDuration=document.getElementById("popupDuration");
+const popupMapLink=document.getElementById("popupMapLink");
+
+function renderRegions(){
+  regionList.innerHTML="";
+  Object.keys(regions).forEach(region=>{
+    const b=document.createElement("button");
+    b.className="region-btn"+(selectedRegion===region?" active":"");
+    b.textContent=region;
+    b.onclick=()=>{
+      selectedRegion=selectedRegion===region?"":region;
+      selectedCity="";
+      renderRegions();
+      renderCityOptions();
+      updateMapFilter();
+    };
+    regionList.appendChild(b);
+  });
+}
+
+function renderCityOptions(){
+  citySelect.innerHTML='<option value="">全部縣市</option>';
+  const list=selectedRegion?regions[selectedRegion]:allCities;
+  list.forEach(city=>{
+    const o=document.createElement("option");
+    o.value=city;
+    o.textContent=city;
+    citySelect.appendChild(o);
+  });
+  citySelect.value=selectedCity;
+}
+
+citySelect.onchange=e=>{
+  selectedCity=e.target.value;
+  updateMapFilter();
+};
+
+renderRegions();
+renderCityOptions();
+
+function normalizeName(s){
+  return String(s||"").replace(/台/g,"臺").trim();
+}
+
+function countyName(f){
+  return f.properties?.COUNTYNAME||
+         f.properties?.name||
+         f.properties?.NAME||
+         "";
+}
+
+/* 5. 載入地圖 */
+
+const TOPOJSON_URL=
+  "https://cdn.jsdelivr.net/npm/taiwan-atlas/counties-10t.json";
+
+async function loadMap(){
+  try{
+    const res=await fetch(TOPOJSON_URL);
+    if(!res.ok)throw new Error("TopoJSON 載入失敗："+res.status);
+
+    topology=await res.json();
+    const object=topology.objects.counties;
+    if(!object)throw new Error("找不到 counties 行政區資料。");
+
+    features=topojson.feature(topology,object).features;
+    mainFeatures=features;
+
+    drawMap(object);
+
+    document.getElementById("loading").style.display="none";
+    mapSvg.style.display="block";
+  }catch(err){
+    console.error(err);
+    document.getElementById("loading").textContent=
+      "地圖載入失敗，請確認網路連線後重新整理。";
+  }
+}
+
+/* 6. 繪製地圖 */
+
+function drawMap(object){
+  world.selectAll("*").remove();
+
+  projection=d3.geoMercator().fitExtent(
+    [[75,35],[925,725]],
+    {type:"FeatureCollection",features:mainFeatures}
+  );
+
+  path=d3.geoPath(projection);
+
+  mainLayer=world.append("g").attr("id","mainCounties");
+
+  mainLayer.selectAll(".county-fill")
+    .data(mainFeatures)
+    .join("path")
+    .attr("class","county-fill")
+    .attr("data-name",countyName)
+    .attr("d",path)
+    .attr("fill",(d,i)=>palette[i%palette.length])
+    .attr("filter","url(#softShadow)")
+    .on("click",(event,d)=>chooseCounty(countyName(d)));
+
+  const internalMesh=topojson.mesh(
+    topology,object,(a,b)=>a!==b
+  );
+
+  mainLayer.append("path")
+    .datum(internalMesh)
+    .attr("class","county-border")
+    .attr("d",path);
+
+  const allOutline=topojson.merge(
+    topology,object.geometries
+  );
+
+  mainLayer.append("path")
+    .datum(allOutline)
+    .attr("class","outer-border")
+    .attr("d",path);
+
+  mainLayer.selectAll(".county-label")
+    .data(mainFeatures)
+    .join("text")
+    .attr("class","county-label")
+    .attr("x",d=>getLabelPosition(d)[0])
+    .attr("y",d=>getLabelPosition(d)[1])
+    .text(d=>countyName(d).replace(/[縣市]$/,""));
+
+  drawAttractionMarkers();
+}
+
+/* 7. 繪製景點圓點與名稱 */
+
+function drawAttractionMarkers(){
+
+  const markerLayer=world.append("g")
+    .attr("id","attractionMarkers")
+    .style("display","none");
+
+  const markerGroups=markerLayer.selectAll(".attraction-group")
+    .data(taipeiAttractions)
+    .join("g")
+    .attr("class","attraction-group");
+
+  markerGroups.append("circle")
+    .attr("class","attraction-marker")
+    .attr("cx",d=>projection([d.lon,d.lat])[0])
+    .attr("cy",d=>projection([d.lon,d.lat])[1])
+    .attr("r",3)
+    .attr("data-name",d=>d.name)
+    .attr("tabindex",0)
+    .each(function(d){
+      d3.select(this)
+        .append("title")
+        .text(d.name);
+    })
+    .on("click",(event,d)=>{
+      event.stopPropagation();
+      showAttractionPopup(d);
+    });
+
+  markerGroups.append("text")
+    .attr("class","attraction-label")
+    .text(d=>d.name);
+}
+
+/* 8. 景點資訊卡 */
+
+async function loadAttractionPhoto(d,requestToken){
+
+  popupImage.style.display="none";
+  popupImage.removeAttribute("src");
+
+  popupImagePlaceholder.style.display="flex";
+  popupImagePlaceholder.textContent="正在載入景點照片⋯";
+
+  try{
+
+    /* 優先取得維基百科景點頁面的圖片 */
+
+    const wikiURL=
+      "https://zh.wikipedia.org/api/rest_v1/page/summary/"+
+      encodeURIComponent(d.wiki||d.name);
+
+    const response=await fetch(wikiURL);
+
+    if(response.ok){
+
+      const data=await response.json();
+
+      const photo=
+        data.originalimage?.source||
+        data.thumbnail?.source;
+
+      if(photo){
+        if(requestToken!==popupRequestToken)return;
+
+        popupImage.onload=()=>{
+          if(requestToken!==popupRequestToken)return;
+          popupImage.style.display="block";
+          popupImagePlaceholder.style.display="none";
+        };
+
+        popupImage.onerror=()=>{
+          if(requestToken!==popupRequestToken)return;
+          loadCommonsPhoto(d,requestToken);
+        };
+
+        popupImage.src=photo;
+        return;
+      }
+    }
+
+  }catch(err){
+    console.warn("維基百科圖片載入失敗：",err);
+  }
+
+  /* 維基百科沒有圖片時，改從 Wikimedia Commons 搜尋 */
+
+  loadCommonsPhoto(d,requestToken);
+}
+
+
+async function loadCommonsPhoto(d,requestToken){
+
+  try{
+
+    const url=
+      "https://commons.wikimedia.org/w/api.php"+
+      "?action=query"+
+      "&generator=search"+
+      "&gsrsearch="+encodeURIComponent(d.name+" Taiwan Taipei")+
+      "&gsrnamespace=6"+
+      "&gsrlimit=5"+
+      "&prop=imageinfo"+
+      "&iiprop=url"+
+      "&iiurlwidth=900"+
+      "&format=json"+
+      "&origin=*";
+
+    const response=await fetch(url);
+
+    if(!response.ok)throw new Error("圖片搜尋失敗");
+
+    const data=await response.json();
+
+    const pages=Object.values(data.query?.pages||{});
+
+    const imagePage=pages.find(p=>
+      p.imageinfo?.[0]?.thumburl||p.imageinfo?.[0]?.url
+    );
+
+    if(!imagePage)throw new Error("找不到景點照片");
+
+    const photo=
+      imagePage.imageinfo[0].thumburl||
+      imagePage.imageinfo[0].url;
+
+    if(requestToken!==popupRequestToken)return;
+
+    popupImage.onload=()=>{
+      if(requestToken!==popupRequestToken)return;
+      popupImage.style.display="block";
+      popupImagePlaceholder.style.display="none";
+    };
+
+    popupImage.onerror=()=>{
+      if(requestToken!==popupRequestToken)return;
+      showPhotoFallback();
+    };
+
+    popupImage.src=photo;
+
+  }catch(err){
+
+    if(requestToken!==popupRequestToken)return;
+
+    console.warn("Wikimedia Commons 圖片載入失敗：",err);
+    showPhotoFallback();
+  }
+}
+
+
+function showPhotoFallback(){
+
+  popupImage.style.display="none";
+  popupImagePlaceholder.style.display="flex";
+  popupImagePlaceholder.textContent="目前無法載入景點照片";
+}
+
+
+/* 顯示景點資訊卡 */
+
+function showAttractionPopup(d){
+
+  selectedAttraction=d;
+
+  const requestToken=++popupRequestToken;
+
+  popupTitle.textContent=d.name;
+  popupDuration.textContent=d.duration;
+
+  popupMapLink.href=
+    "https://www.google.com/maps/search/?api=1&query="+
+    encodeURIComponent(d.name+" 台北");
+
+  popup.classList.add("show");
+
+  loadAttractionPhoto(d,requestToken);
+
+  requestAnimationFrame(()=>{
+    updateAttractionPopup();
+  });
+}
+
+
+/* 更新資訊卡位置 */
+
+function updateAttractionPopup(){
+
+  if(!selectedAttraction||!isFocusMode){
+    return;
+  }
+
+  const markerLayer=world.select("#attractionMarkers");
+
+  if(markerLayer.empty()||markerLayer.style("display")==="none"){
+    hideAttractionPopup();
+    return;
+  }
+
+  const point=projection([
+    selectedAttraction.lon,
+    selectedAttraction.lat
+  ]);
+
+  /* 將地圖座標轉換成螢幕座標 */
+
+  const svgPoint=mapSvg.createSVGPoint();
+
+  svgPoint.x=point[0];
+  svgPoint.y=point[1];
+
+  const screenPoint=svgPoint.matrixTransform(
+    world.node().getScreenCTM()
+  );
+
+  const panelRect=mapPanel.getBoundingClientRect();
+
+  const popupWidth=popup.offsetWidth;
+  const popupHeight=popup.offsetHeight;
+
+  const gap=16;
+  const edge=12;
+
+  let left=screenPoint.x-panelRect.left+gap;
+  let top=screenPoint.y-panelRect.top-popupHeight-gap;
+
+  /* 右側空間不足時，改放在圓點左側 */
+
+  if(left+popupWidth>panelRect.width-edge){
+    left=screenPoint.x-panelRect.left-popupWidth-gap;
+  }
+
+  /* 上方空間不足時，改放在圓點下方 */
+
+  if(top<edge){
+    top=screenPoint.y-panelRect.top+gap;
+  }
+
+  /* 避免資訊卡超出地圖邊界 */
+
+  left=Math.max(
+    edge,
+    Math.min(left,panelRect.width-popupWidth-edge)
+  );
+
+  top=Math.max(
+    edge,
+    Math.min(top,panelRect.height-popupHeight-edge)
+  );
+
+  popup.style.left=left+"px";
+  popup.style.top=top+"px";
+}
+
+
+/* 關閉資訊卡 */
+
+function hideAttractionPopup(){
+
+  selectedAttraction=null;
+  popupRequestToken++;
+
+  popup.classList.remove("show");
+}
+
+
+/* 關閉按鈕 */
+
+document.getElementById("popupClose").onclick=event=>{
+  event.stopPropagation();
+  hideAttractionPopup();
+};
+
+
+/* 9. 景點名稱顯示 */
+
+function updateAttractionLabels(){
+
+  const markerLayer=world.select("#attractionMarkers");
+
+  if(markerLayer.empty())return;
+
+  const isTaipei=
+    normalizeName(selectedCity)==="臺北市";
+
+  if(!isFocusMode||!isTaipei){
+
+    markerLayer.style("display","none");
+
+    markerLayer.selectAll(".attraction-label")
+      .style("display","none");
+
+    hideAttractionPopup();
+
+    return;
+  }
+
+  markerLayer.style("display","inline");
+
+  /* 放大到縣市初始比例的 3 倍才顯示名稱 */
+
+  const labelThreshold=baseCityScale*2;
+
+  if(currentMapTransform.k<labelThreshold){
+
+    markerLayer.selectAll(".attraction-label")
+      .style("display","none");
+
+    /* 名稱隱藏時，資訊卡仍可保留 */
+
+    updateAttractionPopup();
+
+    return;
+  }
+
+  const scale=currentMapTransform.k;
+
+  markerLayer.selectAll(".attraction-group")
+    .each(function(d){
+
+      const label=d3.select(this)
+        .select(".attraction-label");
+
+      const point=projection([d.lon,d.lat]);
+
+      label
+        .attr("x",point[0]+7/scale)
+        .attr("y",point[1]+4/scale)
+        .style("font-size",`${10/scale}px`)
+        .style("display","inline")
+        .style("fill","#ffffff")
+        .style("stroke","none")
+        .style("paint-order","normal")
+        .style("opacity",1)
+        .style("pointer-events","none");
+
+    });
+
+  /* 地圖移動或縮放時同步更新資訊卡 */
+
+  updateAttractionPopup();
+}
+
+
+/* 10. 離島標籤 */
+
+const specialLabelPositions={
+  "金門縣":[118.32,24.44],
+  "澎湖縣":[119.58,23.58],
+  "連江縣":[119.95,26.15]
+};
+
+function getLabelPosition(d){
+  const name=countyName(d);
+  if(specialLabelPositions[name]){
+    const point=projection(specialLabelPositions[name]);
+    return [point[0],point[1]-9];
+  }
+  return path.centroid(d);
+}
+
+
+/* 11. 選擇縣市 */
+
+function chooseCounty(name){
+
+  hideAttractionPopup();
+
+  selectedCity=name;
+
+  selectedRegion=Object.keys(regions).find(r=>
+    regions[r].some(c=>normalizeName(c)===normalizeName(name))
+  )||"離島";
+
+  renderRegions();
+  renderCityOptions();
+  citySelect.value=name;
+
+  searchCity(name);
+}
+
+
+/* 12. 地圖篩選 */
+
+function updateMapFilter(){
+
+  d3.selectAll(".county-fill")
+    .classed("dimmed",d=>{
+      const n=normalizeName(countyName(d));
+
+      if(selectedCity)return n!==normalizeName(selectedCity);
+
+      if(selectedRegion){
+        return !regions[selectedRegion].some(c=>
+          normalizeName(c)===n
+        );
+      }
+
+      return false;
+    });
+}
+
+
+/* 13. 搜尋 */
+
+document.getElementById("searchBtn").onclick=()=>{
+
+  const city=citySelect.value;
+
+  if(city){
+    searchCity(city);
+    return;
+  }
+
+  if(selectedRegion){
+    searchCity(regions[selectedRegion][0]);
+    return;
+  }
+
+  alert("請先選擇地區或縣市。");
+};
+
+
+function searchCity(city){
+
+  hideAttractionPopup();
+
+  selectedCity=city;
+  updateMapFilter();
+
+  const selected=d3.selectAll(".county-fill")
+    .filter(d=>normalizeName(countyName(d))===normalizeName(city));
+
+  if(selected.empty()){
+    alert("找不到這個縣市的地圖區域。");
+    return;
+  }
+
+  const token=++currentSearchToken;
+
+  if(isFocusMode){
+    performCityZoom(city,token);
+    return;
+  }
+
+  mapPanel.scrollIntoView({
+    behavior:"smooth",
+    block:"center"
+  });
+
+  setTimeout(()=>{
+
+    if(token!==currentSearchToken)return;
+
+    mapPanel.classList.add("focus-mode");
+    isFocusMode=true;
+
+    document.body.style.overflow="hidden";
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        if(token===currentSearchToken){
+          performCityZoom(city,token);
+        }
+      });
+    });
+
+  },650);
+}
+
+
+/* 14. 縣市放大並置中
+   保留原本的 bounds、scale、tx、ty 計算方式。
+*/
+
+function performCityZoom(city,token=currentSearchToken){
+
+  if(token!==currentSearchToken)return;
+
+  const selected=world.selectAll(".county-fill")
+    .filter(d=>
+      normalizeName(countyName(d))===normalizeName(city)
+    );
+
+  if(selected.empty())return;
+
+  const geom=selected.datum();
+
+  world.selectAll(".county-fill")
+    .classed("selected",false)
+    .classed("dimmed",true);
+
+  selected
+    .classed("selected",true)
+    .classed("dimmed",false)
+    .raise();
+
+  /* 確保景點圖層在縣市上方 */
+
+  world.select("#attractionMarkers").raise();
+
+  const bounds=path.bounds(geom);
+
+  const x0=bounds[0][0];
+  const y0=bounds[0][1];
+  const x1=bounds[1][0];
+  const y1=bounds[1][1];
+
+  const width=x1-x0;
+  const height=y1-y0;
+
+  if(width<=0||height<=0)return;
+
+  const cx=(x0+x1)/2;
+  const cy=(y0+y1)/2;
+
+  const rect=mapSvg.getBoundingClientRect();
+  const vb=mapSvg.viewBox.baseVal;
+
+  const pxPerUnit=Math.min(
+    rect.width/vb.width,
+    rect.height/vb.height
+  );
+
+  const padding=20;
+
+  const availableWidth=
+    (rect.width-padding*2)/pxPerUnit;
+
+  const availableHeight=
+    (rect.height-padding*2)/pxPerUnit;
+
+  const scale=Math.min(
+    availableWidth/width,
+    availableHeight/height
+  );
+
+  const centerX=vb.x+vb.width/2;
+  const centerY=vb.y+vb.height/2;
+
+  const tx=centerX-cx*scale;
+  const ty=centerY-cy*scale;
+
+  const targetTransform=d3.zoomIdentity
+    .translate(tx,ty)
+    .scale(scale);
+
+  world.interrupt();
+
+  baseCityScale=scale;
+  currentMapTransform=targetTransform;
+
+  /* 圓點在縣市初始放大後維持原本視覺大小 */
+
+  world.selectAll(".attraction-marker")
+    .attr("r",3/scale);
+
+  world
+    .transition()
+    .duration(1300)
+    .ease(d3.easeCubicInOut)
+    .attr("transform",targetTransform.toString())
+    .on("end",()=>{
+
+      if(token!==currentSearchToken)return;
+
+      updateAttractionLabels();
+      updateAttractionPopup();
+    });
+
+  /* 只在台北市顯示景點圓點 */
+
+  if(normalizeName(city)==="臺北市"){
+
+    world.select("#attractionMarkers")
+      .style("display",null);
+
+  }else{
+
+    world.select("#attractionMarkers")
+      .style("display","none");
+
+    hideAttractionPopup();
+  }
+}
+
+
+/* 15. 滑鼠滾輪縮放 */
+
+mapSvg.addEventListener("wheel",event=>{
+
+  if(!isFocusMode)return;
+
+  event.preventDefault();
+
+  const pointer=d3.pointer(event,mapSvg);
+
+  const mapPoint=currentMapTransform.invert(pointer);
+
+  const zoomFactor=Math.exp(-event.deltaY*0.001);
+
+  const minScale=baseCityScale;
+  const maxScale=baseCityScale*12;
+
+  const newScale=Math.max(
+    minScale,
+    Math.min(maxScale,currentMapTransform.k*zoomFactor)
+  );
+
+  const newX=pointer[0]-mapPoint[0]*newScale;
+  const newY=pointer[1]-mapPoint[1]*newScale;
+
+  currentMapTransform=d3.zoomIdentity
+    .translate(newX,newY)
+    .scale(newScale);
+
+  world.interrupt()
+    .attr("transform",currentMapTransform.toString());
+
+  updateAttractionLabels();
+
+},{passive:false});
+
+
+/* 16. 滑鼠按住拖曳地圖 */
+
+mapSvg.addEventListener("pointerdown",event=>{
+
+  if(!isFocusMode)return;
+
+  if(event.button!==0)return;
+
+  /* 點擊景點圓點或資訊卡時，不啟動地圖拖曳 */
+
+  if(
+    event.target.closest(".attraction-marker")||
+    event.target.closest("#attractionPopup")
+  )return;
+
+  event.preventDefault();
+
+  dragStartPoint=d3.pointer(event,mapSvg);
+  dragStartTransform=currentMapTransform;
+  hasDragged=false;
+
+  mapSvg.setPointerCapture(event.pointerId);
+  mapSvg.classList.add("is-dragging");
+
+});
+
+
+mapSvg.addEventListener("pointermove",event=>{
+
+  if(!isFocusMode)return;
+  if(!dragStartPoint||!dragStartTransform)return;
+
+  const currentPoint=d3.pointer(event,mapSvg);
+
+  const dx=currentPoint[0]-dragStartPoint[0];
+  const dy=currentPoint[1]-dragStartPoint[1];
+
+  if(Math.abs(dx)>2||Math.abs(dy)>2){
+    hasDragged=true;
+  }
+
+  if(!hasDragged)return;
+
+  currentMapTransform=d3.zoomIdentity
+    .translate(
+      dragStartTransform.x+dx,
+      dragStartTransform.y+dy
+    )
+    .scale(dragStartTransform.k);
+
+  world.interrupt()
+    .attr("transform",currentMapTransform.toString());
+
+  updateAttractionLabels();
+
+});
+
+
+function finishMapDrag(event){
+
+  if(dragStartPoint){
+    dragStartPoint=null;
+    dragStartTransform=null;
+  }
+
+  mapSvg.classList.remove("is-dragging");
+
+  if(mapSvg.hasPointerCapture(event.pointerId)){
+    mapSvg.releasePointerCapture(event.pointerId);
+  }
+}
+
+
+mapSvg.addEventListener("pointerup",finishMapDrag);
+mapSvg.addEventListener("pointercancel",finishMapDrag);
+
+mapSvg.addEventListener("lostpointercapture",()=>{
+  dragStartPoint=null;
+  dragStartTransform=null;
+  mapSvg.classList.remove("is-dragging");
+});
+
+
+/* 點擊地圖空白處關閉資訊卡 */
+
+mapSvg.addEventListener("click",event=>{
+
+  if(
+    event.target===mapSvg||
+    event.target.id==="mapWorld"||
+    event.target.classList.contains("county-border")||
+    event.target.classList.contains("outer-border")
+  ){
+    hideAttractionPopup();
+  }
+
+});
+
+
+/* 17. 推薦內容 */
+
+function showRecommendations(city){
+
+  const data=recommendations[city]||{
+    description:"探索這個縣市的在地特色。",
+    foods:[],
+    spots:[]
+  };
+
+  document.getElementById("resultCity").textContent=city;
+  document.getElementById("resultDescription").textContent=data.description;
+
+  renderCards("foodCards",data.foods);
+  renderCards("spotCards",data.spots);
+
+  document.getElementById("result").classList.add("show");
+}
+
+
+function renderCards(id,items){
+
+  const box=document.getElementById(id);
+  box.innerHTML="";
+
+  if(!items?.length){
+    box.innerHTML=
+      '<p class="empty">目前尚未設定推薦項目，請在程式碼的 recommendations 區塊新增。</p>';
+    return;
+  }
+
+  items.forEach(item=>{
+
+    const card=document.createElement("article");
+    card.className="card";
+
+    const content=document.createElement("div");
+    content.className="card-content";
+
+    const h=document.createElement("h3");
+    h.textContent=item.name;
+
+    const p=document.createElement("p");
+    p.textContent=item.description||"";
+
+    const a=document.createElement("a");
+    a.href="https://www.google.com/maps/search/?api=1&query="+
+      encodeURIComponent(item.query||item.name);
+
+    a.target="_blank";
+    a.rel="noopener";
+    a.textContent="在 Google Maps 查看地點 ↗";
+
+    content.append(h,p,a);
+    card.append(content);
+    box.append(card);
+  });
+}
+
+
+/* 18. 返回台灣地圖 */
+
+function backToTaiwanMap(){
+
+  currentSearchToken++;
+
+  if(zoomResizeTimer){
+    clearTimeout(zoomResizeTimer);
+    zoomResizeTimer=null;
+  }
+
+  hideAttractionPopup();
+
+  dragStartPoint=null;
+  dragStartTransform=null;
+
+  mapSvg.classList.remove("is-dragging");
+
+  world.interrupt();
+
+  world
+    .transition()
+    .duration(650)
+    .ease(d3.easeCubicInOut)
+    .attr("transform",null)
+    .on("end",()=>{
+
+      mapPanel.classList.remove("focus-mode");
+      isFocusMode=false;
+
+      document.body.style.overflow="";
+
+      currentMapTransform=d3.zoomIdentity;
+      baseCityScale=1;
+
+      d3.selectAll(".county-fill")
+        .interrupt()
+        .attr("transform",null)
+        .attr("filter","url(#softShadow)")
+        .classed("selected",false)
+        .classed("dimmed",false);
+
+      /* 還原景點圓點大小與顯示狀態 */
+
+      world.selectAll(".attraction-marker")
+        .attr("r",3);
+
+      world.select("#attractionMarkers")
+        .style("display","none");
+
+      world.selectAll(".attraction-label")
+        .style("display","none");
+
+      d3.selectAll(".selected-outline").remove();
+
+      d3.selectAll(".county-label")
+        .style("display",null);
+
+    });
+
+  selectedCity="";
+  selectedRegion="";
+
+  renderRegions();
+  renderCityOptions();
+
+  document.getElementById("result").classList.remove("show");
+}
+
+
+document.getElementById("mapBackBtn").onclick=backToTaiwanMap;
+document.getElementById("backBtn").onclick=backToTaiwanMap;
+
+
+/* 19. 視窗尺寸變動時重新計算置中 */
+
+window.addEventListener("resize",()=>{
+
+  if(!isFocusMode||!selectedCity)return;
+
+  clearTimeout(zoomResizeTimer);
+
+  zoomResizeTimer=setTimeout(()=>{
+
+    const token=currentSearchToken;
+
+    performCityZoom(selectedCity,token);
+
+    requestAnimationFrame(()=>{
+      updateAttractionPopup();
+    });
+
+  },180);
+
+});
+
+
+/* 啟動 */
+
+loadMap();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,510 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flower Decision</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --pink: #f3b2c5;
+    --deep-pink: #d87597;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #fff2f6, #ffe4ed, #fff8f2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* 主畫面 */
+
+.container {
+    width: 100%;
+    min-height: 100vh;
+    padding: 25px 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 食物顯示 */
+
+.food-card {
+    background: rgba(255,255,255,0.8);
+    border: 2px solid white;
+    border-radius: 25px;
+    padding: 25px 45px;
+    min-width: 250px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.food-name {
+    color: var(--deep-pink);
+    font-size: 32px;
+    font-weight: bold;
+    transition: transform 0.2s;
+}
+
+.food-name.change {
+    transform: scale(1.15);
+}
+
+/* 花朵區域 */
+
+.flower-area {
+    width: min(90vw, 560px);
+    height: min(90vw, 560px);
+    position: relative;
+    margin: 0 auto;
+}
+
+.flower {
+    position: absolute;
+    inset: 0;
+}
+
+/* 花瓣 */
+
+.petal {
+    position: absolute;
+
+    width: 48px;
+    height: 165px;
+
+    left: calc(50% - 24px);
+    top: calc(50% - 165px);
+
+    transform-origin: 50% 165px;
+
+    border-radius: 50% 50% 45% 45%;
+
+    background: #f3b2c5;
+    border: 1px solid #e99eb6;
+
+    box-shadow: none;
+    filter: none;
+
+    cursor: pointer;
+    z-index: 2;
+
+    transition:
+        transform 0.5s ease,
+        opacity 0.5s ease;
+}
+
+.petal:nth-child(even) {
+    background: #f8c5d3;
+    border-color: #edafc1;
+}
+
+.petal:hover:not(.removed) {
+    filter: none;
+}
+
+/* 拔下花瓣 */
+
+.petal.removed {
+    opacity: 0;
+
+    transform:
+        translate(var(--fall-x), 230px)
+        rotate(100deg)
+        scale(0.7);
+
+    pointer-events: none;
+}
+
+/* 花心 */
+
+.flower-center {
+    position: absolute;
+
+    width: 85px;
+    height: 85px;
+
+    background: #f5d77c;
+
+    border-radius: 50%;
+
+    top: 50%;
+    left: 50%;
+
+    transform: translate(-50%, -50%);
+
+    z-index: 3;
+
+    border: 1px solid #e9c56e;
+
+    pointer-events: none;
+}
+
+/* 最終結果 */
+
+.result-overlay {
+    position: fixed;
+    inset: 0;
+
+    background: rgba(105,66,83,0.45);
+
+    display: none;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 100;
+    padding: 20px;
+
+    cursor: pointer;
+}
+
+.result-overlay.show {
+    display: flex;
+    animation: fadeIn 0.4s;
+}
+
+.result-card {
+    width: min(350px, 90vw);
+    padding: 35px 20px;
+
+    background: #fff0f4;
+
+    border: 2px solid white;
+    border-radius: 28px;
+
+    text-align: center;
+
+    animation: popIn 0.5s;
+
+    pointer-events: none;
+}
+
+/* 結果花瓣 */
+
+.result-petal {
+    width: 190px;
+    height: 240px;
+
+    margin: 0 auto;
+
+    background: #f3b2c5;
+
+    border: 2px solid #e99eb6;
+
+    border-radius: 60% 60% 48% 48%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 15px;
+
+    transform: rotate(-5deg);
+}
+
+.result-food {
+    color: white;
+    font-size: 27px;
+    font-weight: bold;
+
+    transform: rotate(5deg);
+
+    word-break: keep-all;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 手機版 */
+
+@media(max-width: 500px) {
+
+    .petal {
+        width: 34px;
+        height: 125px;
+
+        left: calc(50% - 17px);
+        top: calc(50% - 125px);
+
+        transform-origin: 50% 125px;
+    }
+
+    .flower-center {
+        width: 65px;
+        height: 65px;
+    }
+
+    .food-card {
+        padding: 20px 35px;
+    }
+
+    .food-name {
+        font-size: 27px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- 食物名稱 -->
+
+    <div class="food-card">
+        <div class="food-name" id="foodName">
+            火鍋
+        </div>
+    </div>
+
+    <!-- 花朵 -->
+
+    <div class="flower-area">
+        <div class="flower" id="flower"></div>
+        <div class="flower-center"></div>
+    </div>
+
+</div>
+
+<!-- 最後結果 -->
+
+<div
+    class="result-overlay"
+    id="resultOverlay"
+    onclick="closeResult()"
+>
+
+    <div class="result-card">
+
+        <div class="result-petal">
+            <div class="result-food" id="resultFood">
+                火鍋
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+// 五種食物
+
+const foods = [
+    "火鍋",
+    "拉麵",
+    "壽司",
+    "義大利麵",
+    "韓式料理"
+];
+
+let totalPetals = 0;
+let removedPetals = 0;
+let foodIndex = 0;
+let isFinished = false;
+let isRestarting = false;
+
+const flower = document.getElementById("flower");
+const foodName = document.getElementById("foodName");
+
+const resultOverlay =
+    document.getElementById("resultOverlay");
+
+const resultFood =
+    document.getElementById("resultFood");
+
+
+// 建立花瓣
+
+function createPetals() {
+
+    const angle = 360 / totalPetals;
+
+    for (let i = 0; i < totalPetals; i++) {
+
+        const petal = document.createElement("div");
+
+        petal.className = "petal";
+
+        // 花瓣平均環繞花心排列
+
+        petal.style.transform =
+            `rotate(${i * angle}deg)`;
+
+        // 隨機掉落位置
+
+        petal.style.setProperty(
+            "--fall-x",
+            `${Math.random() * 120 - 60}px`
+        );
+
+        // 每片花瓣獨立點擊
+
+        petal.addEventListener("click", function(event) {
+
+            event.stopPropagation();
+
+            removePetal(petal);
+
+        });
+
+        flower.appendChild(petal);
+    }
+}
+
+
+// 拔除單片花瓣
+
+function removePetal(petal) {
+
+    if (
+        isFinished ||
+        isRestarting ||
+        petal.classList.contains("removed")
+    ) {
+        return;
+    }
+
+    // 拔除花瓣
+
+    petal.classList.add("removed");
+
+    removedPetals++;
+
+    // 如果是最後一片，不再切換食物
+
+    if (removedPetals === totalPetals) {
+
+        isFinished = true;
+
+        // 保留目前顯示的食物
+
+        setTimeout(showResult, 600);
+
+        return;
+    }
+
+    // 非最後一片才切換食物
+
+    foodIndex = (foodIndex + 1) % foods.length;
+
+    foodName.textContent = foods[foodIndex];
+
+    foodName.classList.remove("change");
+
+    void foodName.offsetWidth;
+
+    foodName.classList.add("change");
+}
+
+
+// 顯示結果
+
+function showResult() {
+
+    if (!isFinished) return;
+
+    // 取得最後保留的食物
+
+    const finalFood = foodName.textContent;
+
+    resultFood.textContent = finalFood;
+
+    resultOverlay.classList.add("show");
+}
+
+
+// 關閉結果並自動開始新一輪
+
+function closeResult() {
+
+    if (!isFinished || isRestarting) return;
+
+    isRestarting = true;
+
+    // 關閉結果畫面
+
+    resultOverlay.classList.remove("show");
+
+    // 等待結果畫面淡出
+
+    setTimeout(() => {
+
+        // 清除舊花瓣
+
+        flower.innerHTML = "";
+
+        // 隨機產生 7～15 片花瓣
+
+        totalPetals = Math.floor(Math.random() * 9) + 7;
+
+        // 重置遊戲數據
+
+        removedPetals = 0;
+        foodIndex = 0;
+        isFinished = false;
+
+        // 重置食物名稱
+
+        foodName.textContent = foods[0];
+
+        foodName.classList.remove("change");
+
+        // 生成新花瓣
+
+        createPetals();
+
+        isRestarting = false;
+
+    }, 400);
+}
+
+
+// 初始化遊戲
+
+function initGame() {
+
+    totalPetals = Math.floor(Math.random() * 9) + 7;
+
+    removedPetals = 0;
+    foodIndex = 0;
+    isFinished = false;
+    isRestarting = false;
+
+    foodName.textContent = foods[0];
+
+    createPetals();
+}
+
+initGame();
+
+</script>
+
+</body>
+</html>

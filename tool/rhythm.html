@@ -1,0 +1,1955 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜虛擬舞台節奏選擇器</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --pink:#ff63b8;
+  --deep:#18234d;
+  --light:#e8f7ff;
+}
+
+body{
+  margin:0;
+  overflow:hidden;
+  background:#080d26;
+  font-family:Arial,"Noto Sans TC",sans-serif;
+  user-select:none;
+}
+
+button{font:inherit;cursor:pointer}
+
+#gameCanvas{
+  position:fixed;
+  inset:0;
+  z-index:0;
+}
+
+#gameUI{
+  position:fixed;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+}
+
+.case-panel{
+  position:absolute;
+  top:72px;
+  left:50%;
+  transform:translateX(-50%);
+  width:min(360px,85%);
+  padding:9px 15px;
+  text-align:center;
+  border-radius:14px;
+  border:1px solid #bfe9ff66;
+  background:linear-gradient(115deg,#18254eee,#302553ed);
+  box-shadow:0 5px 24px #02061770;
+}
+
+.case-number{
+  color:#80dff5;
+  font-size:10px;
+  font-weight:bold;
+  letter-spacing:2px;
+}
+
+#caseName{
+  color:#fff;
+  font-size:18px;
+  font-weight:900;
+  margin:3px 0;
+}
+
+.case-progress{
+  height:4px;
+  border-radius:10px;
+  background:#35405f;
+  overflow:hidden;
+  margin-top:7px;
+}
+
+#caseProgress{
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,#65eaff,#c383ff,#ff71c8);
+}
+
+#judgement{
+  position:absolute;
+  top:35%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  color:white;
+  font-size:35px;
+  font-weight:1000;
+  text-shadow:0 2px 12px #47caff,0 0 25px #e971ff;
+  opacity:0;
+  transition:opacity .12s;
+}
+
+#judgement.show{opacity:1}
+
+#comboDisplay{
+  position:absolute;
+  bottom:82px;
+  left:50%;
+  transform:translateX(-50%);
+  color:white;
+  font-size:22px;
+  font-weight:900;
+  text-shadow:0 2px 12px #58cfff,0 0 20px #df65ff;
+}
+
+#message{
+  position:absolute;
+  bottom:120px;
+  width:100%;
+  text-align:center;
+  color:white;
+  font-size:12px;
+  font-weight:bold;
+  text-shadow:0 2px 8px #000,0 0 10px #091027;
+}
+
+.key-hints{
+  position:absolute;
+  bottom:17px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  gap:12px;
+}
+
+.key-hint{
+  width:55px;
+  height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:2px solid #c5f3ff;
+  border-radius:7px;
+  background:#101a37e8;
+  color:#bdf5ff;
+  font-size:17px;
+  font-weight:900;
+  box-shadow:0 4px 0 #327ca8;
+}
+
+.key-hint.active{
+  transform:translateY(3px);
+  box-shadow:0 1px 0 #327ca8;
+  background:#d8fbff;
+  color:#18234d;
+}
+
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+  background:#070b1dd9;
+  backdrop-filter:blur(9px);
+}
+
+.modal{
+  width:min(460px,100%);
+  max-height:90vh;
+  overflow:auto;
+  padding:23px;
+  border-radius:20px;
+  background:linear-gradient(145deg,#17254a,#171a3c 72%,#29204d);
+  border:1px solid #a8e8ff88;
+  box-shadow:0 15px 60px #0009,0 0 35px #63dfff20;
+}
+
+.modal h1{
+  text-align:center;
+  color:#9af0ff;
+  font-size:25px;
+  margin:0 0 7px;
+}
+
+.subtitle{
+  text-align:center;
+  color:#c0cde8;
+  font-size:13px;
+  line-height:1.7;
+  margin-bottom:14px;
+}
+
+.primary-btn{
+  width:100%;
+  padding:12px;
+  margin-top:15px;
+  border:0;
+  border-radius:10px;
+  color:#071327;
+  background:linear-gradient(100deg,#66edff,#9d8aff 55%,#ff7ac5);
+  font-size:16px;
+  font-weight:900;
+  box-shadow:0 5px 0 #5150a2;
+}
+
+.primary-btn:active{
+  transform:translateY(4px);
+  box-shadow:0 1px 0 #5150a2;
+}
+
+.hidden{display:none!important}
+
+#winnerName{
+  text-align:center;
+  font-size:38px;
+  font-weight:1000;
+  color:#a8f4ff;
+  padding:25px 10px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#17446d,#44306f 55%,#752d69);
+  margin-top:15px;
+}
+
+.result-caption{
+  text-align:center;
+  color:#c8d7f3;
+  font-size:14px;
+}
+
+.result-detail{
+  text-align:center;
+  color:#c8d7f3;
+  font-size:13px;
+  margin-top:12px;
+  line-height:1.8;
+}
+
+.result-scores{
+  display:grid;
+  gap:5px;
+  margin-top:12px;
+}
+
+.result-score-row{
+  display:flex;
+  justify-content:space-between;
+  padding:7px 10px;
+  border:1px solid #b2d8ff30;
+  border-radius:8px;
+  background:#ffffff08;
+  color:#dce8ff;
+  font-size:12px;
+}
+
+.result-score-row.winner{
+  border-color:var(--option-color);
+  color:#fff;
+  background:color-mix(in srgb,var(--option-color) 16%,#17254a);
+}
+
+@media(max-width:600px){
+  .case-panel{top:67px}
+  .key-hints{gap:9px}
+  .key-hint{width:48px;height:35px}
+  .modal{padding:18px}
+}
+
+@media(max-height:600px){
+  #setupOverlay .modal{padding:16px}
+  #setupOverlay .modal h1{font-size:22px;margin-bottom:5px}
+  #setupOverlay .subtitle{font-size:12px;line-height:1.4;margin-bottom:8px}
+  #setupOverlay .primary-btn{margin-top:9px;padding:10px}
+  #resultOverlay .modal{padding:16px}
+  #resultOverlay .modal h1{font-size:22px;margin-bottom:5px}
+  #resultOverlay .subtitle{margin-bottom:8px}
+  #resultOverlay #winnerName{font-size:30px;padding:12px 8px;margin-top:8px}
+  #resultOverlay .result-detail{font-size:12px;margin-top:7px}
+  #resultOverlay .result-scores{gap:3px;margin-top:8px}
+  #resultOverlay .result-score-row{padding:5px 9px}
+  #resultOverlay .primary-btn{margin-top:9px;padding:10px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="gameCanvas"></div>
+
+<div id="gameUI">
+
+  <div class="case-panel">
+
+    <div id="caseName">準備開始</div>
+    <div class="case-progress">
+      <div id="caseProgress"></div>
+    </div>
+  </div>
+
+  <div id="judgement">PERFECT</div>
+  <div id="comboDisplay">0 COMBO</div>
+  <div id="message">跟隨音樂節奏完成挑戰</div>
+
+  <div class="key-hints">
+    <div class="key-hint" data-key="D">D</div>
+    <div class="key-hint" data-key="F">F</div>
+    <div class="key-hint" data-key="J">J</div>
+    <div class="key-hint" data-key="K">K</div>
+  </div>
+
+</div>
+
+<div class="overlay" id="setupOverlay">
+  <div class="modal">
+    <h1>PickMe ✦ 虛擬舞台</h1>
+
+    <div class="subtitle">
+      高難度節奏挑戰<br>
+      跟隨音樂完成挑戰，看看最後哪個選項獲得最高分。
+    </div>
+
+    <div class="subtitle" style="margin-top:17px;margin-bottom:0">
+      曲目長度：60 秒<br>
+      使用 D、F、J、K，或滑鼠及觸控操作。<br>
+      注意不同長度的音符，以及長按和滑動判定。
+    </div>
+
+    <button class="primary-btn" id="startBtn">開始遊戲</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="resultOverlay">
+  <div class="modal">
+    <h1>✦ 遊戲結束 ✦</h1>
+    <div class="subtitle">節奏挑戰完成！</div>
+    <div class="result-caption">最高分的選項是</div>
+    <div id="winnerName">選項一</div>
+    <div class="result-detail" id="resultDetail"></div>
+    <div class="result-scores" id="resultScores"></div>
+    <button class="primary-btn" id="againBtn">再玩一次</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+
+/* =========================
+   1. 選項與隨機顏色
+========================= */
+
+const OPTIONS=[
+  {name:"選項一",color:0x55b9f3},
+  {name:"選項二",color:0x55b9f3},
+  {name:"選項三",color:0x55b9f3},
+  {name:"選項四",color:0x55b9f3},
+  {name:"選項五",color:0x55b9f3}
+];
+
+const COLOR_PALETTE=[
+  0x4bd9ff,
+  0x57e6b1,
+  0xff67ba,
+  0xffcf57,
+  0xb18aff
+];
+
+function colorToCss(color){
+  return "#"+color.toString(16).padStart(6,"0");
+}
+
+function shuffle(array){
+  const result=[...array];
+
+  for(let i=result.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [result[i],result[j]]=[result[j],result[i]];
+  }
+
+  return result;
+}
+
+function randomizeColors(){
+  const colors=shuffle(COLOR_PALETTE);
+
+  OPTIONS.forEach((option,i)=>{
+    option.color=colors[i];
+  });
+}
+
+randomizeColors();
+
+/* =========================
+   2. 基本設定
+========================= */
+
+const BPM=150;
+const BEAT=60/BPM;
+
+const SONG_DURATION=60;
+
+const LANE_COUNT=4;
+const SPAWN_Y=5.3;
+const HIT_Y=-4.25;
+const TRAVEL_TIME=2.5;
+
+const PERFECT_WINDOW=0.075;
+const GREAT_WINDOW=0.14;
+const GOOD_WINDOW=0.22;
+
+const VIEW_HEIGHT=12;
+
+let scene,camera,renderer;
+const clock=new THREE.Clock();
+
+const pointerRaycaster=new THREE.Raycaster();
+const pointerPosition=new THREE.Vector2();
+
+const pointerHitPlane=new THREE.Plane(
+  new THREE.Vector3(0,0,1),
+  -0.15
+);
+
+let notes=[];
+let particles=[];
+let trackObjects=[];
+
+let gameRunning=false;
+let gameTime=0;
+let combo=0;
+let totalScore=0;
+let totalNotes=0;
+
+let audioContext=null;
+let musicStartTime=0;
+let gameStartWallTime=0;
+let musicIndex=0;
+
+let judgementTimer=null;
+
+const heldPointers=new Map();
+const heldKeys=new Set();
+
+let laneWidth=1;
+let playfieldWidth=10;
+let playfieldTopWidth=3.4;
+
+const optionScores=[0,0,0,0,0];
+
+const container=document.getElementById("gameCanvas");
+
+/* =========================
+   3. Three.js 場景
+========================= */
+
+function init3D(){
+
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x080d26);
+  scene.fog=new THREE.Fog(0x080d26,20,55);
+
+  camera=new THREE.OrthographicCamera(
+    -8,8,
+    VIEW_HEIGHT/2,
+    -VIEW_HEIGHT/2,
+    0.1,100
+  );
+
+  camera.position.set(0,0,20);
+  camera.lookAt(0,0,0);
+
+  renderer=new THREE.WebGLRenderer({
+    antialias:true,
+    alpha:false
+  });
+
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.2;
+
+  container.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff,1.4));
+
+  const light1=new THREE.PointLight(0xffa8d0,100,40);
+  light1.position.set(-7,5,8);
+  scene.add(light1);
+
+  const light2=new THREE.PointLight(0xa99bff,100,40);
+  light2.position.set(7,3,7);
+  scene.add(light2);
+
+  createBackground();
+  createPlayfield();
+  createDecorations();
+
+  window.addEventListener("resize",resize);
+
+  animate();
+}
+
+/* =========================
+   4. 背景
+========================= */
+
+function createBackground(){
+
+  const wall=new THREE.Mesh(
+    new THREE.PlaneGeometry(60,30),
+    new THREE.MeshBasicMaterial({color:0x282137})
+  );
+
+  wall.position.set(0,0,-12);
+  scene.add(wall);
+
+  for(let i=0;i<70;i++){
+
+    const star=new THREE.Mesh(
+      new THREE.CircleGeometry(
+        0.025+Math.random()*0.055,12
+      ),
+      new THREE.MeshBasicMaterial({
+        color:[0xffd7eb,0xcdb9ff,0xa9e5e3,0xffffff][i%4],
+        transparent:true,
+        opacity:0.7
+      })
+    );
+
+    star.position.set(
+      (Math.random()-0.5)*24,
+      (Math.random()-0.5)*18,
+      -8
+    );
+
+    scene.add(star);
+  }
+}
+
+/* =========================
+   4-1. 3D 裝飾
+========================= */
+
+function createDecorations(){
+
+  for(const side of [-1,1]){
+
+    const ring=new THREE.Mesh(
+      new THREE.TorusGeometry(1.5,0.055,12,64),
+      new THREE.MeshBasicMaterial({
+        color:side===-1?0xffa9d0:0xb7a5ff
+      })
+    );
+
+    ring.position.set(side*8,2,-7);
+    scene.add(ring);
+  }
+
+  const positions=[];
+
+  for(let i=0;i<180;i++){
+
+    positions.push(
+      (Math.random()-0.5)*30,
+      (Math.random()-0.5)*20,
+      -5-Math.random()*15
+    );
+  }
+
+  const geometry=new THREE.BufferGeometry();
+
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions,3)
+  );
+
+  const stars=new THREE.Points(
+    geometry,
+    new THREE.PointsMaterial({
+      color:0xffd7eb,
+      size:0.07,
+      transparent:true,
+      opacity:0.75
+    })
+  );
+
+  scene.add(stars);
+}
+
+/* =========================
+   5. 透視譜面
+========================= */
+
+function createPlayfield(){
+
+  trackObjects.forEach(object=>scene.remove(object));
+
+  trackObjects=[];
+  laneWidth=1;
+
+  const aspect=window.innerWidth/window.innerHeight;
+  const halfWidth=VIEW_HEIGHT*aspect/2;
+
+  playfieldWidth=Math.min(16,halfWidth*1.75);
+  playfieldTopWidth=playfieldWidth*0.34;
+  laneWidth=playfieldWidth/LANE_COUNT;
+
+  for(let i=0;i<LANE_COUNT;i++){
+
+    const shape=new THREE.Shape();
+
+    shape.moveTo(getLaneEdge(i,HIT_Y),HIT_Y-0.4);
+    shape.lineTo(getLaneEdge(i+1,HIT_Y),HIT_Y-0.4);
+    shape.lineTo(getLaneEdge(i+1,SPAWN_Y),SPAWN_Y+0.4);
+    shape.lineTo(getLaneEdge(i,SPAWN_Y),SPAWN_Y+0.4);
+    shape.closePath();
+
+    const track=new THREE.Mesh(
+      new THREE.ShapeGeometry(shape),
+      new THREE.MeshBasicMaterial({
+        color:i%2===0?0x17274b:0x1c2e55,
+        depthWrite:true,
+        side:THREE.DoubleSide
+      })
+    );
+
+    track.position.z=-0.15;
+    scene.add(track);
+    trackObjects.push(track);
+  }
+
+  for(let i=0;i<=LANE_COUNT;i++){
+
+    const border=new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(
+          getLaneEdge(i,HIT_Y-0.4),
+          HIT_Y-0.4,
+          -0.12
+        ),
+        new THREE.Vector3(
+          getLaneEdge(i,SPAWN_Y+0.4),
+          SPAWN_Y+0.4,
+          -0.12
+        )
+      ]),
+      new THREE.LineBasicMaterial({color:0x6b8ebd})
+    );
+
+    scene.add(border);
+    trackObjects.push(border);
+  }
+
+  const line=new THREE.Mesh(
+    new THREE.PlaneGeometry(playfieldWidth+0.25,0.075),
+    new THREE.MeshBasicMaterial({color:0xffffff})
+  );
+
+  line.position.set(0,HIT_Y,-0.05);
+  scene.add(line);
+  trackObjects.push(line);
+
+  const glow=new THREE.Mesh(
+    new THREE.PlaneGeometry(playfieldWidth+0.25,0.18),
+    new THREE.MeshBasicMaterial({color:0x6ceaff})
+  );
+
+  glow.position.set(0,HIT_Y,-0.1);
+  scene.add(glow);
+  trackObjects.push(glow);
+}
+
+function getPlayfieldWidthAtY(y){
+
+  const progress=THREE.MathUtils.clamp(
+    (SPAWN_Y-y)/(SPAWN_Y-HIT_Y),
+    0,1
+  );
+
+  return THREE.MathUtils.lerp(
+    playfieldTopWidth,
+    playfieldWidth,
+    progress
+  );
+}
+
+function getLaneEdge(edge,y){
+
+  return -getPlayfieldWidthAtY(y)/2+
+    edge*getPlayfieldWidthAtY(y)/LANE_COUNT;
+}
+
+function getLaneCenter(lane,y){
+
+  return (
+    getLaneEdge(lane,y)+
+    getLaneEdge(lane+1,y)
+  )/2;
+}
+
+function getLaneWidthAtY(y){
+  return getPlayfieldWidthAtY(y)/LANE_COUNT;
+}
+
+/* =========================
+   6. 矩形音符外觀
+========================= */
+
+function roundedShape(w,h,r){
+
+  const s=new THREE.Shape();
+  const x=-w/2;
+  const y=-h/2;
+
+  r=Math.min(r,w/2,h/2);
+
+  s.moveTo(x+r,y);
+  s.lineTo(x+w-r,y);
+  s.quadraticCurveTo(x+w,y,x+w,y+r);
+  s.lineTo(x+w,y+h-r);
+  s.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  s.lineTo(x+r,y+h);
+  s.quadraticCurveTo(x,y+h,x,y+h-r);
+  s.lineTo(x,y+r);
+  s.quadraticCurveTo(x,y,x+r,y);
+
+  return s;
+}
+
+function solidNote(w,h,r,color,z=0){
+
+  const mesh=new THREE.Mesh(
+    new THREE.ExtrudeGeometry(roundedShape(w,h,r),{
+      depth:0.12,
+      bevelEnabled:true,
+      bevelThickness:0.025,
+      bevelSize:0.025,
+      bevelSegments:2,
+      curveSegments:8
+    }),
+    new THREE.MeshStandardMaterial({
+      color,
+      emissive:color,
+      emissiveIntensity:0.22,
+      metalness:0.12,
+      roughness:0.34
+    })
+  );
+
+  mesh.position.z=z;
+  return mesh;
+}
+
+function flatNote(w,h,r,color,z=0){
+
+  const mesh=new THREE.Mesh(
+    new THREE.ShapeGeometry(roundedShape(w,h,r)),
+    new THREE.MeshBasicMaterial({
+      color,
+      side:THREE.DoubleSide,
+      depthWrite:false
+    })
+  );
+
+  mesh.position.z=z;
+  return mesh;
+}
+
+function makeFlickArrow(){
+
+  const shape=new THREE.Shape();
+
+  shape.moveTo(-0.20,-0.08);
+  shape.lineTo(0,0.18);
+  shape.lineTo(0.20,-0.08);
+  shape.lineTo(0.085,-0.08);
+  shape.lineTo(0.085,-0.22);
+  shape.lineTo(-0.085,-0.22);
+  shape.lineTo(-0.085,-0.08);
+  shape.closePath();
+
+  return new THREE.Mesh(
+    new THREE.ShapeGeometry(shape),
+    new THREE.MeshBasicMaterial({
+      color:0xffffff,
+      side:THREE.DoubleSide,
+      depthWrite:false
+    })
+  );
+}
+
+function createNoteMesh(note){
+
+  const color=OPTIONS[note.optionIndex].color;
+  const group=new THREE.Group();
+
+  const width=laneWidth*note.width*0.88;
+
+  if(note.type==="TAP"||note.type==="FLICK"){
+
+    const height=note.visualLength;
+
+    const rim=solidNote(
+      width,
+      height+0.07,
+      0.075,
+      0xeafaff,
+      -0.01
+    );
+
+    const body=solidNote(
+      width-0.05,
+      height,
+      0.055,
+      color,
+      0.13
+    );
+
+    group.add(rim,body);
+
+    const shine=flatNote(
+      width*0.64,
+      0.025,
+      0.012,
+      0xffffff,
+      0.27
+    );
+
+    shine.position.y=height*0.25;
+    group.add(shine);
+
+    if(note.type==="FLICK"){
+
+      const arrow=makeFlickArrow();
+
+      arrow.position.z=0.3;
+      arrow.scale.set(0.68,0.68,1);
+
+      group.add(arrow);
+    }
+  }
+
+  if(note.type==="HOLD"||note.type==="TRACE"){
+
+    const bodyHeight=Math.max(
+      note.duration*(SPAWN_Y-HIT_Y)/TRAVEL_TIME,
+      0.55
+    );
+
+    const bodyWidth=note.type==="HOLD"
+      ?width*0.65
+      :width*0.48;
+
+    const body=solidNote(
+      bodyWidth,
+      bodyHeight,
+      0.055,
+      new THREE.Color(color).multiplyScalar(0.62),
+      0.04
+    );
+
+    body.position.y=bodyHeight/2;
+    group.add(body);
+
+    const rim=solidNote(
+      width,
+      note.visualLength+0.07,
+      0.075,
+      0xeafaff,
+      0.08
+    );
+
+    const head=solidNote(
+      width-0.05,
+      note.visualLength,
+      0.055,
+      color,
+      0.22
+    );
+
+    group.add(rim,head);
+
+    const end=solidNote(
+      width*0.72,
+      0.14,
+      0.05,
+      color,
+      0.08
+    );
+
+    end.position.y=bodyHeight;
+    group.add(end);
+  }
+
+  group.position.set(
+    getLaneCenter(note.lane,SPAWN_Y),
+    SPAWN_Y,
+    0.15
+  );
+
+  scene.add(group);
+
+  return group;
+}
+
+/* =========================
+   7. 全新音樂：星夜迴響
+========================= */
+
+const SCALE=[
+  60,62,64,67,69,72,74,76,79
+];
+
+const PHRASE_PATTERNS=[
+  [0,2,4,2,1,3,4,6],
+  [4,3,2,4,6,4,3,1],
+  [0,2,4,6,7,6,4,2],
+  [3,4,6,4,2,1,2,0],
+  [4,6,7,8,7,6,4,3],
+  [2,4,6,7,6,4,2,1]
+];
+
+let melodyEvents=[];
+let musicDuration=0;
+
+function buildMelody(){
+
+  melodyEvents=[];
+
+  let beatPosition=0;
+  let phraseIndex=0;
+
+  while(beatPosition<SONG_DURATION/BEAT){
+
+    const pattern=PHRASE_PATTERNS[
+      phraseIndex%PHRASE_PATTERNS.length
+    ];
+
+    for(let i=0;i<pattern.length;i++){
+
+      const step=pattern[i];
+
+      const note=SCALE[step];
+
+      const beat=beatPosition+i;
+
+      if(beat>=SONG_DURATION/BEAT)break;
+
+      melodyEvents.push({
+        note,
+        beat,
+        duration:0.72
+      });
+
+      if(
+        phraseIndex%2===1&&
+        i%4===2&&
+        beat+0.5<SONG_DURATION/BEAT
+      ){
+
+        melodyEvents.push({
+          note:SCALE[Math.min(step+1,SCALE.length-1)],
+          beat:beat+0.5,
+          duration:0.25
+        });
+      }
+    }
+
+    beatPosition+=8;
+    phraseIndex++;
+  }
+
+  melodyEvents.sort((a,b)=>a.beat-b.beat);
+
+  musicDuration=SONG_DURATION;
+}
+
+buildMelody();
+
+function initAudio(){
+
+  if(!audioContext){
+
+    audioContext=new(
+      window.AudioContext||window.webkitAudioContext
+    )();
+  }
+
+  if(audioContext.state==="suspended"){
+    audioContext.resume();
+  }
+}
+
+function playTone(freq,time,duration){
+
+  if(!audioContext)return;
+
+  const osc=audioContext.createOscillator();
+  const gain=audioContext.createGain();
+  const filter=audioContext.createBiquadFilter();
+
+  osc.type="triangle";
+  osc.frequency.setValueAtTime(freq,time);
+
+  filter.type="lowpass";
+  filter.frequency.setValueAtTime(1800,time);
+
+  gain.gain.setValueAtTime(0.0001,time);
+  gain.gain.exponentialRampToValueAtTime(0.055,time+0.025);
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    time+duration
+  );
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioContext.destination);
+
+  osc.start(time);
+  osc.stop(time+duration+0.03);
+}
+
+function playBass(time){
+
+  if(!audioContext)return;
+
+  const osc=audioContext.createOscillator();
+  const gain=audioContext.createGain();
+
+  osc.type="sine";
+  osc.frequency.setValueAtTime(75,time);
+  osc.frequency.exponentialRampToValueAtTime(42,time+0.18);
+
+  gain.gain.setValueAtTime(0.0001,time);
+  gain.gain.exponentialRampToValueAtTime(0.08,time+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,time+0.2);
+
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+
+  osc.start(time);
+  osc.stop(time+0.22);
+}
+
+function playDrum(time){
+
+  if(!audioContext)return;
+
+  const osc=audioContext.createOscillator();
+  const gain=audioContext.createGain();
+
+  osc.type="sine";
+  osc.frequency.setValueAtTime(130,time);
+  osc.frequency.exponentialRampToValueAtTime(45,time+0.12);
+
+  gain.gain.setValueAtTime(0.0001,time);
+  gain.gain.exponentialRampToValueAtTime(0.065,time+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,time+0.14);
+
+  osc.connect(gain);
+  gain.connect(audioContext.destination);
+
+  osc.start(time);
+  osc.stop(time+0.16);
+}
+
+function startMusic(){
+
+  const startDelay=0.3;
+
+  musicStartTime=audioContext.currentTime+startDelay;
+  gameStartWallTime=performance.now()/1000+startDelay;
+  musicIndex=0;
+}
+
+function updateMusic(){
+
+  if(!gameRunning||!audioContext)return;
+
+  const now=audioContext.currentTime;
+
+  while(musicIndex<melodyEvents.length){
+
+    const event=melodyEvents[musicIndex];
+    const eventTime=musicStartTime+event.beat*BEAT;
+
+    if(eventTime>now+0.15)break;
+
+    const freq=440*Math.pow(2,(event.note-69)/12);
+
+    playTone(
+      freq,
+      eventTime,
+      event.duration*BEAT
+    );
+
+    if(Math.abs(event.beat-Math.round(event.beat))<0.01){
+
+      const beatNumber=Math.round(event.beat);
+
+      if(beatNumber%4===0){
+        playBass(eventTime);
+      }else if(beatNumber%4===2){
+        playDrum(eventTime);
+      }
+    }
+
+    musicIndex++;
+  }
+}
+
+/* =========================
+   8. 高難度譜面生成
+========================= */
+
+function createChart(){
+
+  const chart=[];
+
+  const maxBeat=(SONG_DURATION-TRAVEL_TIME-0.2)/BEAT;
+
+  const candidateBeats=[];
+
+  for(let beat=4;beat<maxBeat;beat+=0.5){
+
+    const value=Number(beat.toFixed(2));
+
+    if(Math.random()<0.38){
+      candidateBeats.push(value);
+    }
+  }
+
+  for(let beat=8;beat<maxBeat;beat+=8){
+
+    candidateBeats.push(Number(beat.toFixed(2)));
+    candidateBeats.push(Number((beat+2).toFixed(2)));
+  }
+
+  const uniqueBeats=[...new Set(candidateBeats)]
+    .sort((a,b)=>a-b);
+
+  let previousTarget=-10;
+  let previousLane=-1;
+  let previousType="TAP";
+
+  uniqueBeats.forEach(beat=>{
+
+    const targetTime=beat*BEAT+TRAVEL_TIME;
+
+    if(targetTime-previousTarget<0.43)return;
+
+    const roll=Math.random();
+
+    let type="TAP";
+
+    if(roll<0.17)type="HOLD";
+    else if(roll<0.31)type="FLICK";
+    else if(roll<0.43)type="TRACE";
+
+    if(
+      (previousType==="HOLD"||previousType==="TRACE")&&
+      (type==="HOLD"||type==="TRACE")
+    ){
+      type="TAP";
+    }
+
+    let duration=0;
+
+    if(type==="HOLD"){
+      duration=(1.5+Math.floor(Math.random()*3)*0.5)*BEAT;
+    }
+
+    if(type==="TRACE"){
+      duration=(1.5+Math.floor(Math.random()*2)*0.5)*BEAT;
+    }
+
+    const visualLength=
+      type==="TAP"||type==="FLICK"
+      ?0.22+Math.random()*0.32
+      :0.30;
+
+    let lanes=shuffle([0,1,2,3]);
+
+    lanes=lanes.sort((a,b)=>{
+      if(a===previousLane)return 1;
+      if(b===previousLane)return -1;
+      return 0;
+    });
+
+    const lane=lanes[0];
+
+    const optionIndex=Math.floor(Math.random()*OPTIONS.length);
+
+    chart.push({
+      type,
+      lane,
+      width:1,
+      optionIndex,
+      duration,
+      visualLength,
+      targetTime,
+      judged:false,
+      holding:false,
+      holdStarted:false,
+      mesh:null
+    });
+
+    previousTarget=targetTime;
+    previousLane=lane;
+    previousType=type;
+  });
+
+  return chart.sort(
+    (a,b)=>a.targetTime-b.targetTime
+  );
+}
+
+/* =========================
+   9. 開始遊戲
+========================= */
+
+function startGame(){
+
+  initAudio();
+
+  if(audioContext.state==="suspended"){
+    audioContext.resume();
+  }
+
+  clearGameObjects();
+
+  optionScores.fill(0);
+
+  combo=0;
+  totalScore=0;
+  gameTime=0;
+  gameRunning=true;
+
+  document.getElementById("comboDisplay").textContent="0 COMBO";
+
+  document.getElementById("setupOverlay").classList.add("hidden");
+  document.getElementById("resultOverlay").classList.add("hidden");
+
+  document.getElementById("caseName").textContent="星夜迴響";
+  document.getElementById("caseProgress").style.width="0%";
+
+  document.getElementById("message").textContent=
+    "跟上節奏！點擊、長按或向上滑動音符。";
+
+  notes=createChart();
+  totalNotes=notes.length;
+
+  notes.forEach(note=>{
+    note.mesh=createNoteMesh(note);
+  });
+
+  startMusic();
+}
+
+function clearGameObjects(){
+
+  notes.forEach(note=>{
+    if(note.mesh){
+      scene.remove(note.mesh);
+      disposeObject(note.mesh);
+    }
+  });
+
+  particles.forEach(p=>{
+    scene.remove(p.mesh);
+    disposeObject(p.mesh);
+  });
+
+  notes=[];
+  particles=[];
+
+  heldPointers.clear();
+  heldKeys.clear();
+
+  document.querySelectorAll(".key-hint").forEach(hint=>{
+    hint.classList.remove("active");
+  });
+}
+
+function disposeObject(object){
+
+  object.traverse(child=>{
+
+    if(child.geometry){
+      child.geometry.dispose();
+    }
+
+    if(child.material){
+
+      if(Array.isArray(child.material)){
+        child.material.forEach(material=>material.dispose());
+      }else{
+        child.material.dispose();
+      }
+    }
+  });
+}
+
+/* =========================
+   10. 音符移動
+========================= */
+
+function updateNotes(){
+
+  if(!gameRunning)return;
+
+  for(const note of notes){
+
+    if(!gameRunning)break;
+    if(note.judged)continue;
+
+    const spawnTime=note.targetTime-TRAVEL_TIME;
+    const progress=(gameTime-spawnTime)/TRAVEL_TIME;
+
+    if(progress>=0){
+
+      note.mesh.visible=true;
+
+      const p=Math.min(progress,1);
+
+      note.mesh.position.y=
+        SPAWN_Y+(HIT_Y-SPAWN_Y)*p;
+
+      const laneScale=
+        getLaneWidthAtY(note.mesh.position.y)/laneWidth;
+
+      note.mesh.position.x=getLaneCenter(
+        note.lane,
+        note.mesh.position.y
+      );
+
+      note.mesh.scale.set(laneScale,laneScale,1);
+
+    }else{
+      note.mesh.visible=false;
+    }
+
+    if(
+      note.holding&&
+      gameTime>=note.targetTime+note.duration
+    ){
+      judgeNote(note,"PERFECT");
+    }
+
+    if(
+      !note.judged&&
+      gameTime>note.targetTime+note.duration+GOOD_WINDOW
+    ){
+      judgeNote(note,"MISS");
+    }
+  }
+
+  const judged=notes.filter(n=>n.judged).length;
+
+  document.getElementById("caseProgress").style.width=
+    (judged/totalNotes*100)+"%";
+
+  if(gameTime>=SONG_DURATION){
+
+    notes.forEach(note=>{
+      if(!note.judged){
+        judgeNote(note,"MISS");
+      }
+    });
+
+    endGame();
+    return;
+  }
+
+  if(judged===totalNotes){
+    endGame();
+  }
+}
+
+/* =========================
+   11. 判定
+========================= */
+
+function judgeNote(note,result){
+
+  if(note.judged)return;
+
+  note.judged=true;
+
+  scene.remove(note.mesh);
+  disposeObject(note.mesh);
+
+  let points=0;
+
+  if(result==="PERFECT")points=100;
+  if(result==="GREAT")points=80;
+  if(result==="GOOD")points=50;
+
+  if(result==="MISS"){
+
+    combo=0;
+
+  }else{
+
+    combo++;
+
+    optionScores[note.optionIndex]+=points;
+    totalScore+=points;
+  }
+
+  document.getElementById("comboDisplay").textContent=
+    combo+" COMBO";
+
+  showJudgement(result);
+
+  if(result!=="MISS"){
+    createHitEffect(note);
+  }
+}
+
+function getJudgement(diff){
+
+  if(diff<=PERFECT_WINDOW)return "PERFECT";
+  if(diff<=GREAT_WINDOW)return "GREAT";
+  if(diff<=GOOD_WINDOW)return "GOOD";
+
+  return null;
+}
+
+/* =========================
+   12. 點擊判定
+========================= */
+
+function hitLane(lane){
+
+  if(!gameRunning)return;
+
+  let candidate=null;
+  let closest=Infinity;
+
+  notes.forEach(note=>{
+
+    if(note.judged)return;
+
+    if(
+      lane<note.lane||
+      lane>=note.lane+note.width
+    )return;
+
+    if(note.holdStarted)return;
+
+    const diff=Math.abs(gameTime-note.targetTime);
+
+    if(diff<closest){
+      closest=diff;
+      candidate=note;
+    }
+  });
+
+  if(!candidate||closest>GOOD_WINDOW){
+    showJudgement("空拍");
+    return;
+  }
+
+  if(
+    candidate.type==="HOLD"||
+    candidate.type==="TRACE"
+  ){
+
+    candidate.holdStarted=true;
+    candidate.holding=true;
+
+    showJudgement("HOLD");
+    return;
+  }
+
+  const result=getJudgement(closest);
+
+  if(candidate.type==="FLICK"){
+
+    judgeNote(candidate,result||"MISS");
+    return;
+  }
+
+  judgeNote(candidate,result);
+}
+
+/* =========================
+   13. 長按放開
+========================= */
+
+function releaseLane(lane){
+
+  if(!gameRunning)return;
+
+  notes.forEach(note=>{
+
+    if(
+      note.judged||
+      !note.holding||
+      lane<note.lane||
+      lane>=note.lane+note.width
+    )return;
+
+    const elapsed=gameTime-note.targetTime;
+
+    if(elapsed>=note.duration*0.85){
+      judgeNote(note,"PERFECT");
+    }else{
+      judgeNote(note,"MISS");
+    }
+  });
+}
+
+/* =========================
+   14. 滑鼠與觸控
+========================= */
+
+function getLaneFromPointer(event){
+
+  const rect=renderer.domElement.getBoundingClientRect();
+
+  pointerPosition.x=
+    ((event.clientX-rect.left)/rect.width)*2-1;
+
+  pointerPosition.y=
+    -((event.clientY-rect.top)/rect.height)*2+1;
+
+  pointerRaycaster.setFromCamera(
+    pointerPosition,
+    camera
+  );
+
+  const hitPoint=pointerRaycaster.ray.intersectPlane(
+    pointerHitPlane,
+    new THREE.Vector3()
+  );
+
+  if(!hitPoint)return null;
+
+  const widthAtPointer=getPlayfieldWidthAtY(hitPoint.y);
+
+  if(Math.abs(hitPoint.x)>widthAtPointer/2)return null;
+
+  const lane=Math.floor(
+    (hitPoint.x+widthAtPointer/2)/
+    (widthAtPointer/LANE_COUNT)
+  );
+
+  return lane>=0&&lane<LANE_COUNT?lane:null;
+}
+
+function setupPointerEvents(){
+
+  const canvas=renderer.domElement;
+
+  canvas.addEventListener("pointerdown",event=>{
+
+    if(!gameRunning)return;
+
+    event.preventDefault();
+
+    const lane=getLaneFromPointer(event);
+
+    if(lane===null)return;
+
+    heldPointers.set(event.pointerId,lane);
+
+    hitLane(lane);
+  });
+
+  canvas.addEventListener("pointerup",event=>{
+
+    const lane=heldPointers.get(event.pointerId);
+
+    if(lane!==undefined){
+
+      releaseLane(lane);
+
+      heldPointers.delete(event.pointerId);
+    }
+  });
+
+  canvas.addEventListener("pointercancel",event=>{
+
+    const lane=heldPointers.get(event.pointerId);
+
+    if(lane!==undefined){
+
+      releaseLane(lane);
+
+      heldPointers.delete(event.pointerId);
+    }
+  });
+}
+
+/* =========================
+   15. 鍵盤操作
+========================= */
+
+const KEY_LANES={
+  D:[0],
+  F:[1],
+  J:[2],
+  K:[3]
+};
+
+function handleKeyDown(event){
+
+  if(!gameRunning)return;
+
+  const key=event.key.toUpperCase();
+
+  if(!KEY_LANES[key])return;
+
+  event.preventDefault();
+
+  if(heldKeys.has(key))return;
+
+  heldKeys.add(key);
+
+  const hint=document.querySelector(
+    `.key-hint[data-key="${key}"]`
+  );
+
+  if(hint)hint.classList.add("active");
+
+  const lanes=KEY_LANES[key];
+
+  let best=null;
+  let closest=Infinity;
+
+  notes.forEach(note=>{
+
+    if(note.judged||note.holdStarted)return;
+
+    const overlaps=lanes.some(lane=>
+      lane>=note.lane&&lane<note.lane+note.width
+    );
+
+    if(!overlaps)return;
+
+    const diff=Math.abs(gameTime-note.targetTime);
+
+    if(diff<closest){
+      closest=diff;
+      best=note;
+    }
+  });
+
+  if(!best||closest>GOOD_WINDOW){
+    showJudgement("空拍");
+    return;
+  }
+
+  if(
+    best.type==="HOLD"||
+    best.type==="TRACE"
+  ){
+
+    best.holdStarted=true;
+    best.holding=true;
+
+    showJudgement("HOLD");
+    return;
+  }
+
+  judgeNote(
+    best,
+    getJudgement(closest)||"MISS"
+  );
+}
+
+function handleKeyUp(event){
+
+  const key=event.key.toUpperCase();
+
+  if(!KEY_LANES[key])return;
+
+  heldKeys.delete(key);
+
+  const hint=document.querySelector(
+    `.key-hint[data-key="${key}"]`
+  );
+
+  if(hint)hint.classList.remove("active");
+
+  const lanes=KEY_LANES[key];
+
+  lanes.forEach(lane=>releaseLane(lane));
+}
+
+/* =========================
+   16. 判定文字
+========================= */
+
+function showJudgement(text){
+
+  const el=document.getElementById("judgement");
+
+  el.textContent=text;
+  el.classList.add("show");
+
+  clearTimeout(judgementTimer);
+
+  judgementTimer=setTimeout(()=>{
+    el.classList.remove("show");
+  },420);
+}
+
+/* =========================
+   17. 命中特效
+========================= */
+
+function createHitEffect(note){
+
+  const color=OPTIONS[note.optionIndex].color;
+
+  for(let i=0;i<9;i++){
+
+    const mesh=new THREE.Mesh(
+      new THREE.CircleGeometry(0.045,8),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent:true
+      })
+    );
+
+    mesh.position.set(
+      getLaneCenter(note.lane,HIT_Y)+
+        (Math.random()-0.5)*0.5,
+      HIT_Y,
+      1
+    );
+
+    scene.add(mesh);
+
+    particles.push({
+      mesh,
+      vx:(Math.random()-0.5)*0.13,
+      vy:Math.random()*0.13,
+      life:0.5
+    });
+  }
+}
+
+function updateParticles(delta){
+
+  for(let i=particles.length-1;i>=0;i--){
+
+    const p=particles[i];
+
+    p.life-=delta;
+    p.mesh.position.x+=p.vx;
+    p.mesh.position.y+=p.vy;
+
+    p.mesh.scale.multiplyScalar(0.96);
+
+    if(p.life<=0){
+
+      scene.remove(p.mesh);
+      disposeObject(p.mesh);
+
+      particles.splice(i,1);
+    }
+  }
+}
+
+/* =========================
+   18. 結算
+========================= */
+
+function endGame(){
+
+  if(!gameRunning)return;
+
+  gameRunning=false;
+
+  const highest=Math.max(...optionScores);
+
+  const winners=OPTIONS.filter((option,index)=>
+    optionScores[index]===highest
+  );
+
+  const winner=winners[
+    Math.floor(Math.random()*winners.length)
+  ];
+
+  document.getElementById("winnerName").textContent=
+    winner.name;
+
+  document.getElementById("winnerName").style.setProperty(
+    "--option-color",
+    colorToCss(winner.color)
+  );
+
+  document.getElementById("resultDetail").textContent=
+    winners.length>1
+      ?`最高分並列（${highest} 分），已從並列選項中隨機選出。`
+      :`以 ${highest} 分成為本局最高分選項。`;
+
+  const resultScores=
+    document.getElementById("resultScores");
+
+  resultScores.innerHTML="";
+
+  OPTIONS.forEach((option,index)=>{
+
+    const row=document.createElement("div");
+
+    row.className="result-score-row";
+
+    row.style.setProperty(
+      "--option-color",
+      colorToCss(option.color)
+    );
+
+    if(option===winner){
+      row.classList.add("winner");
+    }
+
+    row.innerHTML=`
+      <span>${option.name}</span>
+      <strong>${optionScores[index]} 分</strong>
+    `;
+
+    resultScores.appendChild(row);
+  });
+
+  document.getElementById("resultOverlay")
+    .classList.remove("hidden");
+}
+
+/* =========================
+   19. 再玩一次
+========================= */
+
+function replay(){
+
+  gameRunning=false;
+
+  clearGameObjects();
+
+  randomizeColors();
+
+  optionScores.fill(0);
+
+  combo=0;
+  totalScore=0;
+  gameTime=0;
+
+  document.getElementById("resultOverlay")
+    .classList.add("hidden");
+
+  document.getElementById("setupOverlay")
+    .classList.remove("hidden");
+
+  document.getElementById("comboDisplay").textContent=
+    "0 COMBO";
+
+  document.getElementById("caseNumber").textContent="READY";
+
+  document.getElementById("caseName").textContent="準備開始";
+
+  document.getElementById("caseProgress").style.width="0%";
+
+  document.getElementById("message").textContent=
+    "跟隨音樂節奏完成挑戰";
+
+  document.querySelectorAll(".key-hint").forEach(hint=>{
+    hint.classList.remove("active");
+  });
+}
+
+/* =========================
+   20. 動畫
+========================= */
+
+function animate(){
+
+  requestAnimationFrame(animate);
+
+  const delta=Math.min(clock.getDelta(),0.05);
+
+  if(gameRunning){
+
+    gameTime=
+      performance.now()/1000-gameStartWallTime;
+
+    updateNotes();
+    updateMusic();
+  }
+
+  updateParticles(delta);
+
+  renderer.render(scene,camera);
+}
+
+/* =========================
+   21. 視窗調整
+========================= */
+
+function resize(){
+
+  if(!camera||!renderer)return;
+
+  const aspect=window.innerWidth/window.innerHeight;
+
+  const halfHeight=VIEW_HEIGHT/2;
+  const halfWidth=halfHeight*aspect;
+
+  camera.left=-halfWidth;
+  camera.right=halfWidth;
+  camera.top=halfHeight;
+  camera.bottom=-halfHeight;
+
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+  );
+
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio,2)
+  );
+
+  if(scene)createPlayfield();
+}
+
+/* =========================
+   22. 初始化
+========================= */
+
+document.getElementById("startBtn")
+  .addEventListener("click",startGame);
+
+document.getElementById("againBtn")
+  .addEventListener("click",replay);
+
+window.addEventListener("keydown",event=>{
+  if(!event.repeat)handleKeyDown(event);
+});
+
+window.addEventListener("keyup",handleKeyUp);
+
+init3D();
+setupPointerEvents();
+resize();
+
+</script>
+</body>
+</html>

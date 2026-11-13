@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PickMe｜扭蛋機教學</title>
+<link rel="stylesheet" href="../tool-transition.css">
+<script src="../tool-transition.js"></script>
+
+<link rel="stylesheet" href="gacha.css">
+</head>
+
+<body>
+
+<div class="ambient-decorations">
+    <span class="deco deco-star">✦</span>
+    <span class="deco deco-heart">♥</span>
+    <span class="deco deco-ball"></span>
+    <span class="deco deco-star">✧</span>
+    <span class="deco deco-heart">♡</span>
+    <span class="deco deco-ball mint"></span>
+    <span class="deco deco-star">✧</span>
+    <span class="deco deco-ball yellow"></span>
+</div>
+
+
+
+<div class="gachapon-machine" id="machine">
+
+    <div class="machine-top">
+        <div class="lights">
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+            <span class="light"></span>
+        </div>
+    </div>
+
+    <div class="gachapon-window" id="window">
+        <canvas id="gachaCanvas"></canvas>
+    </div>
+
+    <div class="control-panel" id="controlPanel">
+        <div class="panel-ui" id="panelUi">
+            <div
+                class="crank"
+                id="crank"
+                role="button"
+                tabindex="0"
+                aria-label="啟動扭蛋機"
+            ></div>
+        </div>
+
+        <div class="exit-hole"></div>
+    </div>
+
+    <div class="machine-bottom">
+        ✧ LET'S GO OUT ✧
+    </div>
+
+</div>
+
+<!-- 滾出來的扭蛋 -->
+<div class="gacha-drop-container" id="eggContainer">
+    <div class="egg-shell" id="eggShell">
+        <div class="shell-top" id="eggTop">
+            <span class="egg-face" id="eggFace">ᵔᴥᵔ</span>
+        </div>
+        <div class="shell-bottom"></div>
+    </div>
+</div>
+
+<!-- 點擊任意位置關閉結果 -->
+<div
+    class="result-overlay"
+    id="resultOverlay"
+></div>
+
+<!-- 中央金色結果卡片 -->
+<div class="lucky-card" id="luckyCard">
+    <div class="card-number" id="cardNumber">選項一</div>
+</div>
+
+<!-- 新手教學面板 -->
+<div class="tutorial-overlay" id="tutorialOverlay">
+    <div class="tutorial-box">
+
+        <div class="tutorial-step" id="tutorialStep">新手教學</div>
+
+        <div class="tutorial-title" id="tutorialTitle">
+            歡迎來到 PickMe扭蛋機！
+        </div>
+
+        <div class="tutorial-text" id="tutorialText">
+            喜歡轉扭蛋嗎？快來轉一個吧！
+        </div>
+
+        <div class="tutorial-progress" id="tutorialProgress">
+            <span class="tutorial-dot active"></span>
+            <span class="tutorial-dot"></span>
+            <span class="tutorial-dot"></span>
+            <span class="tutorial-dot"></span>
+        </div>
+
+        <div class="tutorial-actions">
+            <button
+                class="tutorial-button"
+                id="tutorialButton"
+            >
+                開始教學
+            </button>
+
+        </div>
+
+    </div>
+</div>
+
+<button class="tool-tutorial-launcher" id="tutorialLauncher" type="button">教學</button>
+
+<script src="gacha.js"></script>
+
+</body>
+</html>

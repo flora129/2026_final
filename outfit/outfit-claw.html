@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../tool-transition.css">
+<script src="../tool-transition.js"></script>
+<title>風格幸運娃娃機</title>
+
+<link rel="stylesheet" href="outfit-claw.css">
+</head>
+
+<body>
+
+<div id="game-machine">
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="400" height="520"></canvas>
+    </div>
+    <div class="result" id="result">抓娃娃來決定穿什麼吧！</div>
+    <div class="control-panel">
+        <div class="joystick-area">
+            <div class="joystick" id="joystick">
+                <div class="stick" id="stick"></div>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn btn-drop" id="btnDrop">🔴 下爪抓取</button>
+            <button class="btn btn-reset" id="btnReset">重新開始</button>
+        </div>
+    </div>
+</div>
+<script src="outfit-claw.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PickMe｜夾娃娃機教學</title>
+<link rel="stylesheet" href="../tool-transition.css">
+<script src="../tool-transition.js"></script>
+
+<link rel="stylesheet" href="claw.css">
+</head>
+
+<body>
+
+<div id="game-machine">
+
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="gameCanvas" width="400" height="520"></canvas>
+    </div>
+
+    <div class="result" id="result">抓一隻娃娃來決定吧！</div>
+
+    <div class="control-panel">
+
+        <div class="joystick-area">
+            <div class="joystick" id="joystick">
+                <div class="stick" id="stick"></div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn btn-drop" id="btnDrop">🔴 下爪抓取</button>
+            <button class="btn btn-reset" id="btnReset">重新開始</button>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="tutorial-overlay hidden" id="tutorialOverlay"></div>
+
+<div class="tutorial-card hidden" id="tutorialCard">
+
+<div class="tutorial-step-label" id="tutorialStepLabel">
+    WELCOME
+</div>
+
+<div class="tutorial-title" id="tutorialTitle">
+    歡迎來到 PickMe！
+</div>
+
+<div class="tutorial-description" id="tutorialDescription">
+    抓一隻娃娃來決定吧！
+</div>
+
+<div class="tutorial-hint" id="tutorialHint"></div>
+
+<!-- 進度條移到說明文字與按鈕之間 -->
+<div class="tutorial-progress" id="tutorialProgress">
+    <span class="tutorial-dot"></span>
+    <span class="tutorial-dot"></span>
+    <span class="tutorial-dot"></span>
+    <span class="tutorial-dot"></span>
+</div>
+
+    <div class="tutorial-actions">
+
+        <button class="tutorial-button" id="tutorialAction">
+            開始教學
+        </button>
+
+        <button
+            class="tutorial-finish-button hidden"
+            id="tutorialFinish">
+            完成新手教學，開始自由活動
+        </button>
+
+    </div>
+
+</div>
+
+<button class="tool-tutorial-launcher" id="tutorialLauncher" type="button">教學</button>
+
+<script src="claw.js"></script>
+
+</body>
+</html>
