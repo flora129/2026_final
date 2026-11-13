@@ -1,0 +1,1127 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜幸運骰子決定器</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --pink:#f3b2c5;
+  --deep:#d87597;
+  --light:#ffe8ef;
+  --cream:#fff9f5;
+  --purple:#c8b5df;
+  --dark:#684b5a;
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Arial,"Microsoft JhengHei",sans-serif;
+  background:#fce4ec;
+  color:var(--dark);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:24px;
+}
+
+.container{
+  width:100%;
+  max-width:760px;
+  text-align:center;
+}
+
+h1{
+  color:var(--deep);
+  font-size:30px;
+  margin:0 0 8px;
+}
+
+.panel{
+  background:transparent;
+  border:0;
+  border-radius:0;
+  padding:28px 24px;
+  box-shadow:none;
+}
+
+.hidden{display:none!important}
+
+.section-title{
+  font-size:19px;
+  font-weight:bold;
+  margin-bottom:22px;
+}
+
+.mode-options{
+  display:flex;
+  justify-content:center;
+  gap:18px;
+}
+
+.mode-btn{
+  flex:1;
+  max-width:210px;
+  padding:24px 12px;
+  border:2px solid #f4c5d4;
+  background:#fff4f7;
+  border-radius:18px;
+  color:var(--dark);
+  cursor:pointer;
+  transition:.2s;
+}
+
+.mode-btn:hover{
+  transform:translateY(-4px);
+  background:#ffe3ec;
+}
+
+.mode-symbol{
+  display:block;
+  font-size:42px;
+  color:var(--deep);
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.mode-name{
+  font-size:16px;
+  font-weight:bold;
+}
+
+.main-btn{
+  border:0;
+  border-radius:30px;
+  background:linear-gradient(135deg,#ef9eb9,#d87597);
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  padding:14px 40px;
+  cursor:pointer;
+  box-shadow:0 5px 12px rgba(216,117,151,.2);
+  transition:.2s;
+}
+
+.main-btn:hover{
+  transform:translateY(-2px);
+  filter:brightness(1.04);
+}
+
+.main-btn:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.dice-area{
+  display:grid;
+  grid-template-columns:1fr 30px 1fr 30px 1fr;
+  align-items:center;
+  gap:8px;
+  margin:8px auto 22px;
+  max-width:650px;
+}
+
+.dice-box{min-width:0}
+
+.dice-stage{
+  height:300px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  perspective:700px;
+}
+
+.dice-canvas{
+  width:100%;
+  height:100%;
+  max-width:190px;
+  display:block;
+  overflow:visible;
+}
+
+.dice-shadow{
+  position:absolute;
+  width:75px;
+  height:14px;
+  border-radius:50%;
+  background:rgba(167,105,132,.15);
+  bottom:23px;
+  filter:blur(5px);
+  transform:scaleX(1);
+  transition:transform .1s;
+}
+
+.operator{
+  font-size:24px;
+  color:#c69bb1;
+  font-weight:bold;
+}
+
+.status{
+  font-size:14px;
+  color:#b47c94;
+  min-height:22px;
+  margin-top:12px;
+}
+
+.result-box{
+  margin-top:18px;
+  padding:22px;
+  background:#fff1f5;
+  border-radius:20px;
+  border:1px solid #f4d0dc;
+}
+
+.result-label{
+  font-size:14px;
+  color:#ad8196;
+  margin-bottom:8px;
+}
+
+.result-number{
+  font-size:42px;
+  font-weight:bold;
+  color:var(--deep);
+}
+
+.result-calculation{
+  font-size:17px;
+  color:#99798a;
+  margin-top:8px;
+  word-break:break-word;
+}
+
+.final-result{
+  margin-top:20px;
+  padding:23px 15px;
+  background:#fce4ec;
+  border-radius:20px;
+  animation:appear .5s ease;
+}
+
+@keyframes appear{
+  from{opacity:0;transform:scale(.85)}
+  to{opacity:1;transform:scale(1)}
+}
+
+.final-label{
+  font-size:15px;
+  color:#98778b;
+}
+
+.final-number{
+  font-size:48px;
+  font-weight:bold;
+  color:var(--deep);
+  margin:8px 0;
+}
+
+.final-option{
+  font-size:27px;
+  font-weight:bold;
+  color:#865c77;
+  margin-top:8px;
+  word-break:break-word;
+}
+
+@media(max-width:540px){
+  body{padding:12px}
+
+  .panel{padding:24px 12px}
+
+  .dice-area{
+    grid-template-columns:1fr 16px 1fr 16px 1fr;
+    gap:2px;
+  }
+
+  .dice-stage{height:250px}
+
+  .operator{font-size:17px}
+
+  .final-option{font-size:23px}
+
+  .main-btn{padding:13px 28px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *{
+    animation-duration:.01ms!important;
+    transition-duration:.01ms!important;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- 模式選擇 -->
+  <section class="panel" id="modeScreen">
+
+    <h1>請直接選擇計算方式</h1>
+
+    <div class="mode-options">
+
+      <button class="mode-btn" onclick="selectMode('add')">
+        <span class="mode-symbol">＋</span>
+        <span class="mode-name">加法</span>
+      </button>
+
+      <button class="mode-btn" onclick="selectMode('multiply')">
+        <span class="mode-symbol">×</span>
+        <span class="mode-name">乘法</span>
+      </button>
+
+    </div>
+  </section>
+
+
+  <!-- 骰子畫面 -->
+  <section class="panel hidden" id="gameScreen">
+
+
+
+    <div class="dice-area">
+
+      <div class="dice-box">
+        <div class="dice-stage">
+          <canvas class="dice-canvas" id="dice1" aria-label="骰子"></canvas>
+          <div class="dice-shadow"></div>
+        </div>
+      </div>
+
+      <div class="operator" id="operator1">＋</div>
+
+      <div class="dice-box">
+        <div class="dice-stage">
+          <canvas class="dice-canvas" id="dice2" aria-label="骰子"></canvas>
+          <div class="dice-shadow"></div>
+        </div>
+      </div>
+
+      <div class="operator" id="operator2">＋</div>
+
+      <div class="dice-box">
+        <div class="dice-stage">
+          <canvas class="dice-canvas" id="dice3" aria-label="骰子"></canvas>
+          <div class="dice-shadow"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="main-btn" id="rollBtn" onclick="rollDice()">
+      開始擲骰
+    </button>
+
+    <div class="status" id="status"></div>
+
+    <!-- 計算結果 -->
+    <div class="result-box hidden" id="resultBox">
+
+      <div class="result-label">骰子計算結果</div>
+
+      <div class="result-number" id="rawResult">0</div>
+
+      <div class="result-calculation" id="calculation"></div>
+
+      <div class="final-result">
+
+        <div class="final-option" id="finalOption">選項一</div>
+
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+
+<script>
+
+/* 十個對應選項 */
+const options=[
+  "選項一","選項二","選項三","選項四","選項五",
+  "選項六","選項七","選項八","選項九","選項十"
+];
+
+let selectedMode=null;
+let isRolling=false;
+let diceObjects=[];
+let animationFrame=null;
+
+
+/* 骰子設定 */
+const diceConfigs=[
+  {
+    id:"dice1",
+    sides:5,
+    type:"d5",
+    color:"#f6c4d3",
+    dark:"#d87597"
+  },
+  {
+    id:"dice2",
+    sides:8,
+    type:"d8",
+    color:"#e0d2f1",
+    dark:"#9b82bd"
+  },
+  {
+    id:"dice3",
+    sides:10,
+    type:"d10",
+    color:"#f8d8b2",
+    dark:"#d69a62"
+  }
+];
+
+
+/* 選擇模式 */
+function selectMode(mode){
+
+  if(isRolling)return;
+
+  selectedMode=mode;
+  enterGame();
+
+}
+
+
+function enterGame(){
+
+  if(!selectedMode)return;
+
+  document.getElementById("modeScreen").classList.add("hidden");
+
+  document.getElementById("gameScreen").classList.remove("hidden");
+
+  const symbol=selectedMode==="add"?"＋":"×";
+
+
+
+  document.getElementById("operator1").textContent=symbol;
+  document.getElementById("operator2").textContent=symbol;
+
+  initializeDice();
+  resetGame();
+
+}
+
+
+/* 建立骰子幾何 */
+function makeGeometry(type){
+
+  if(type==="d8"){
+
+    const v=[
+      [0,1.18,0],
+      [0,-1.18,0],
+      [1,0,0],
+      [0,0,1],
+      [-1,0,0],
+      [0,0,-1]
+    ];
+
+    const f=[
+      [0,2,3],[0,3,4],[0,4,5],[0,5,2],
+      [1,3,2],[1,4,3],[1,5,4],[1,2,5]
+    ];
+
+    return {
+      v,
+      f,
+      labels:[1,2,3,4,5,6,7,8]
+    };
+  }
+
+
+  if(type==="d5"){
+
+    const v=[
+      [0,1.25,0],
+      [0,-1.25,0]
+    ];
+
+    for(let i=0;i<5;i++){
+
+      const a=2*Math.PI*i/5;
+
+      v.push([
+        Math.cos(a),
+        0,
+        Math.sin(a)
+      ]);
+
+    }
+
+    const f=[];
+
+    for(let i=0;i<5;i++){
+
+      const a=2+i;
+      const b=2+(i+1)%5;
+
+      f.push([0,a,b]);
+      f.push([1,b,a]);
+
+    }
+
+    return {
+      v,
+      f,
+      labels:[1,2,3,4,5,1,2,3,4,5]
+    };
+
+  }
+
+
+  const v=[
+    [0,1.2,0],
+    [0,-1.2,0]
+  ];
+
+  for(let i=0;i<10;i++){
+
+    const a=2*Math.PI*i/10;
+
+    const radius=(i%2===0)?1.0:.82;
+    const y=(i%2===0)?.12:-.12;
+
+    v.push([
+      Math.cos(a)*radius,
+      y,
+      Math.sin(a)*radius
+    ]);
+
+  }
+
+  const f=[];
+
+  for(let i=0;i<10;i++){
+
+    const a=2+i;
+    const b=2+(i+1)%10;
+
+    f.push([0,a,b]);
+    f.push([1,b,a]);
+
+  }
+
+  return {
+    v,
+    f,
+    labels:Array.from(
+      {length:20},
+      (_,i)=>Math.floor(i/2)+1
+    )
+  };
+
+}
+
+
+/* 初始化骰子 */
+function initializeDice(){
+
+  diceObjects=diceConfigs.map(cfg=>{
+
+    const canvas=document.getElementById(cfg.id);
+
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+
+    const rect=canvas.getBoundingClientRect();
+
+    canvas.width=Math.max(1,Math.round(rect.width*dpr));
+    canvas.height=Math.max(1,Math.round(rect.height*dpr));
+
+    const obj={
+      ...cfg,
+
+      canvas,
+      ctx:canvas.getContext("2d"),
+
+      geometry:makeGeometry(cfg.type),
+
+      rx:-.35,
+      ry:.45,
+      rz:-.12,
+
+      vx:0,
+      vy:0,
+      vz:0,
+
+      lift:0,
+      spin:false,
+      value:null,
+      scale:1
+    };
+
+    drawDie(obj);
+
+    return obj;
+
+  });
+
+}
+
+
+/* 視窗尺寸變化 */
+function resizeDice(){
+
+  if(
+    !document.getElementById("gameScreen").classList.contains("hidden")
+    && !isRolling
+  ){
+
+    initializeDice();
+
+  }
+
+}
+
+window.addEventListener("resize",resizeDice);
+
+
+/* 3D 旋轉 */
+function rotatePoint(p,rx,ry,rz){
+
+  let [x,y,z]=p;
+
+  let c=Math.cos(rx);
+  let s=Math.sin(rx);
+
+  [y,z]=[
+    y*c-z*s,
+    y*s+z*c
+  ];
+
+  c=Math.cos(ry);
+  s=Math.sin(ry);
+
+  [x,z]=[
+    x*c+z*s,
+    -x*s+z*c
+  ];
+
+  c=Math.cos(rz);
+  s=Math.sin(rz);
+
+  [x,y]=[
+    x*c-y*s,
+    x*s+y*c
+  ];
+
+  return [x,y,z];
+
+}
+
+
+/* 計算向量 */
+function getFaceInfo(obj,face,rotated){
+
+  const a=rotated[face[0]];
+  const b=rotated[face[1]];
+  const c=rotated[face[2]];
+
+  const edge1=[
+    b[0]-a[0],
+    b[1]-a[1],
+    b[2]-a[2]
+  ];
+
+  const edge2=[
+    c[0]-a[0],
+    c[1]-a[1],
+    c[2]-a[2]
+  ];
+
+  let normal=[
+    edge1[1]*edge2[2]-edge1[2]*edge2[1],
+    edge1[2]*edge2[0]-edge1[0]*edge2[2],
+    edge1[0]*edge2[1]-edge1[1]*edge2[0]
+  ];
+
+  const faceCenter=face.reduce((center,index)=>{
+
+    const point=rotated[index];
+
+    return center.map((value,axis)=>
+      value+point[axis]/face.length
+    );
+
+  },[0,0,0]);
+
+  const outward=
+    normal[0]*faceCenter[0]+
+    normal[1]*faceCenter[1]+
+    normal[2]*faceCenter[2];
+
+  if(outward<0){
+
+    normal=normal.map(value=>-value);
+
+  }
+
+  const towardCamera=
+    normal[0]*-faceCenter[0]+
+    normal[1]*-faceCenter[1]+
+    normal[2]*(3.8-faceCenter[2]);
+
+  return {
+    normal,
+    faceCenter,
+    towardCamera
+  };
+
+}
+
+
+/* 取得最後朝向鏡頭的面 */
+function getVisibleLabel(obj){
+
+  const rotated=obj.geometry.v.map(p=>
+    rotatePoint(p,obj.rx,obj.ry,obj.rz)
+  );
+
+  let bestIndex=0;
+  let bestScore=-Infinity;
+
+  obj.geometry.f.forEach((face,i)=>{
+
+    const info=getFaceInfo(obj,face,rotated);
+
+    const normalLength=Math.hypot(
+      ...info.normal
+    );
+
+    const score=info.towardCamera/normalLength;
+
+    if(score>bestScore){
+
+      bestScore=score;
+      bestIndex=i;
+
+    }
+
+  });
+
+  return obj.geometry.labels[bestIndex];
+
+}
+
+
+/* 繪製立體骰子 */
+function drawDie(obj){
+
+  const {ctx,canvas,geometry}=obj;
+
+  const w=canvas.width;
+  const h=canvas.height;
+
+  ctx.clearRect(0,0,w,h);
+
+  const size=Math.min(w,h);
+
+  const scale=size*.34*(obj.scale||1);
+
+  const rotated=geometry.v.map(p=>
+    rotatePoint(p,obj.rx,obj.ry,obj.rz)
+  );
+
+  const points=rotated.map(r=>{
+
+    const perspective=3.8/(3.8-r[2]);
+
+    return {
+
+      x:w/2+r[0]*scale*perspective,
+
+      y:h*.7-obj.lift*size*.3-r[1]*scale*perspective,
+
+      z:r[2]
+
+    };
+
+  });
+
+
+  const faces=geometry.f.map((face,i)=>({
+
+    face,
+    i,
+
+    depth:face.reduce(
+      (sum,index)=>sum+points[index].z,
+      0
+    )/face.length
+
+  })).sort((a,b)=>a.depth-b.depth);
+
+
+  faces.forEach(({face,i})=>{
+
+    const poly=face.map(index=>points[index]);
+
+    const center={
+
+      x:poly.reduce((s,p)=>s+p.x,0)/poly.length,
+
+      y:poly.reduce((s,p)=>s+p.y,0)/poly.length
+
+    };
+
+    const p0=poly[0];
+    const p1=poly[1];
+    const p2=poly[2];
+
+    const cross=
+      (p1.x-p0.x)*(p2.y-p0.y)-
+      (p1.y-p0.y)*(p2.x-p0.x);
+
+
+    const info=getFaceInfo(obj,face,rotated);
+
+    const front=info.towardCamera>0;
+
+
+    ctx.beginPath();
+
+    ctx.moveTo(poly[0].x,poly[0].y);
+
+    poly.slice(1).forEach(p=>
+      ctx.lineTo(p.x,p.y)
+    );
+
+    ctx.closePath();
+
+
+    const grad=ctx.createLinearGradient(
+      center.x-size*.2,
+      center.y-size*.2,
+      center.x+size*.2,
+      center.y+size*.2
+    );
+
+    grad.addColorStop(
+      0,
+      front?lighten(obj.color,18):obj.color
+    );
+
+    grad.addColorStop(
+      1,
+      front?obj.color:obj.dark
+    );
+
+    ctx.fillStyle=grad;
+    ctx.fill();
+
+    ctx.strokeStyle="rgba(255,255,255,.92)";
+    ctx.lineWidth=Math.max(1.5,size*.009);
+    ctx.stroke();
+
+
+    /* 顯示朝向使用者的數字 */
+    const faceArea=Math.abs(cross)/2;
+
+    if(
+      front&&
+      faceArea>size*size*.003&&
+      center.x>0&&
+      center.x<w&&
+      center.y>0&&
+      center.y<h
+    ){
+
+      let textAngle=Math.atan2(
+        points[face[0]].y-center.y,
+        points[face[0]].x-center.x
+      )+Math.PI/2;
+
+      if(textAngle>Math.PI/2)textAngle-=Math.PI;
+
+      if(textAngle< -Math.PI/2)textAngle+=Math.PI;
+
+
+      ctx.save();
+
+      ctx.translate(center.x,center.y);
+      ctx.rotate(textAngle);
+
+      ctx.fillStyle="#70495d";
+
+      ctx.font=`bold ${Math.max(19,size*.14)}px Arial`;
+
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.lineJoin="round";
+
+      ctx.lineWidth=Math.max(3,size*.018);
+
+      ctx.strokeStyle="rgba(255,255,255,.95)";
+
+      const label=geometry.labels[i]||1;
+
+      ctx.strokeText(String(label),0,0);
+      ctx.fillText(String(label),0,0);
+
+      ctx.restore();
+
+    }
+
+  });
+
+}
+
+
+/* 顏色調整 */
+function lighten(hex,amount){
+
+  const n=parseInt(hex.slice(1),16);
+
+  let r=(n>>16)+amount;
+  let g=((n>>8)&255)+amount;
+  let b=(n&255)+amount;
+
+  return "#"+[r,g,b].map(v=>
+    Math.max(0,Math.min(255,v))
+      .toString(16)
+      .padStart(2,"0")
+  ).join("");
+
+}
+
+
+/* 重設骰子 */
+function resetGame(){
+
+  if(isRolling)return;
+
+  document.getElementById("resultBox").classList.add("hidden");
+
+  document.getElementById("status").textContent="";
+
+  const btn=document.getElementById("rollBtn");
+
+  btn.disabled=false;
+  btn.textContent="開始擲骰";
+
+  if(!diceObjects.length){
+    initializeDice();
+  }
+
+  diceObjects.forEach((d,i)=>{
+
+    d.rx=[-.35,.28,-.42][i];
+    d.ry=[.45,-.5,.3][i];
+    d.rz=[-.12,.2,.08][i];
+
+    d.vx=0;
+    d.vy=0;
+    d.vz=0;
+
+    d.lift=0;
+    d.spin=false;
+    d.value=null;
+    d.scale=1;
+
+    drawDie(d);
+
+  });
+
+}
+
+
+/* 開始擲骰 */
+function rollDice(){
+
+  if(isRolling)return;
+
+  if(!diceObjects.length){
+    initializeDice();
+  }
+
+  isRolling=true;
+
+  const btn=document.getElementById("rollBtn");
+
+  btn.disabled=true;
+
+  document.getElementById("resultBox").classList.add("hidden");
+  document.getElementById("status").textContent="正在擲骰...";
+
+
+  /* 設定每顆骰子的翻滾速度 */
+  diceObjects.forEach((d,i)=>{
+
+    d.spin=true;
+
+    d.vx=(Math.random()-.5)*.34;
+    d.vy=(Math.random()-.5)*.34;
+    d.vz=(Math.random()-.5)*.3;
+
+    d.lift=0;
+    d.value=null;
+
+    d.startDelay=i*90;
+    d.duration=1750+Math.random()*350;
+
+  });
+
+
+  const start=performance.now();
+
+
+  function frame(now){
+
+    let allDone=true;
+
+
+    diceObjects.forEach(d=>{
+
+      const t=now-start-d.startDelay;
+
+
+      if(t<0){
+
+        allDone=false;
+        drawDie(d);
+        return;
+
+      }
+
+
+      const progress=Math.min(t/d.duration,1);
+
+
+      if(progress<1){
+
+        allDone=false;
+
+        /* 先上升，再下降 */
+        const flight=Math.sin(progress*Math.PI);
+
+        d.lift=flight*2.3;
+
+        const speed=1-progress*.62;
+
+        d.rx+=d.vx*speed+0.13;
+        d.ry+=d.vy*speed+0.17;
+        d.rz+=d.vz*speed+0.07;
+
+        d.scale=1+flight*.12;
+
+
+      }else{
+
+        /* 落地後停止旋轉 */
+        const settle=Math.min(
+          (t-d.duration)/260,
+          1
+        );
+
+        d.lift=Math.max(
+          0,
+          (1-settle)*.16*Math.sin(settle*Math.PI)
+        );
+
+        d.scale=1;
+
+      }
+
+      drawDie(d);
+
+    });
+
+
+    if(!allDone){
+
+      animationFrame=requestAnimationFrame(frame);
+
+    }else{
+
+      diceObjects.forEach(d=>{
+
+        d.lift=0;
+        d.scale=1;
+
+        /* 以實際朝向使用者的面作為結果 */
+        d.value=getVisibleLabel(d);
+
+        d.spin=false;
+
+        drawDie(d);
+
+      });
+
+      finishRoll();
+
+    }
+
+  }
+
+
+  animationFrame=requestAnimationFrame(frame);
+
+}
+
+
+/* 顯示計算結果 */
+function finishRoll(){
+
+  const values=diceObjects.map(d=>d.value);
+
+  const total=selectedMode==="add"
+
+    ?values.reduce((a,b)=>a+b,0)
+
+    :values.reduce((a,b)=>a*b,1);
+
+
+  /* 對應十個選項 */
+  const optionIndex=((total-1)%options.length)+1;
+
+  const symbol=selectedMode==="add"?"+":"×";
+
+
+  document.getElementById("rawResult").textContent=total;
+
+  document.getElementById("calculation").textContent=
+    values.join(" "+symbol+" ")+" = "+total;
+
+  /* 顯示選項編號 */
+document.getElementById("finalOption").textContent=
+  options[optionIndex-1];
+
+  /* 顯示對應選項 */
+  document.getElementById("finalOption").textContent=
+    options[optionIndex-1];
+
+
+  document.getElementById("resultBox").classList.remove("hidden");
+
+  document.getElementById("status").textContent="擲骰完成！";
+
+
+  const btn=document.getElementById("rollBtn");
+
+  btn.disabled=false;
+  btn.textContent="再擲一次";
+
+  isRolling=false;
+
+}
+
+</script>
+
+</body>
+</html>

@@ -4,16 +4,19 @@
   const scriptUrl = document.currentScript.src;
   const assetUrl = (path) => new URL(path, scriptUrl).href;
   const path = location.pathname;
-  const match = path.match(/\/(travel|food|draw|challenge|outfit)\/\1-(card|claw|gacha|slot|wheel)\.html$/);
+  const match = path.match(/\/(travel|food|draw|challenge|outfit)\/\1-(card|claw|gacha|slot|wheel)\.html$|\/gift\/gift-wheel\.html$/);
   if (!match) return;
 
-  const [, topic, tool] = match;
+  const [, matchedTopic, matchedTool] = match;
+  const topic = matchedTopic || 'gift';
+  const tool = matchedTool || 'wheel';
   const topicNames = {
     travel: '大臺北景點',
     food: '大臺北美食',
     draw: '畫畫靈感',
     challenge: '社牛挑戰',
     outfit: '穿搭風格',
+    gift: '送禮靈感',
   };
   const topicFavoriteNames = {
     travel: '假日去哪逛',
@@ -21,6 +24,7 @@
     draw: '畫畫沒靈感',
     challenge: '社牛大挑戰',
     outfit: '穿什麼',
+    gift: '送禮靈感',
   };
   const toolNames = {
     card: '抽卡機',

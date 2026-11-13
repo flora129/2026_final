@@ -100,7 +100,7 @@
 
   function initializeTopicNotebook() {
     const match = location.pathname.match(
-      /\/(travel|food|draw|challenge|outfit)\/\1-(card|claw|gacha|slot|wheel)\.html$/
+      /\/(travel|food|draw|challenge|outfit)\/\1-(card|claw|gacha|slot|wheel)\.html$|\/gift\/gift-wheel\.html$/
     );
     if (!match) return;
 

@@ -26,27 +26,39 @@
     <section class="topics-hero">
       <p class="s-tag">PICK YOUR THEME</p>
       <h1>今天想去哪裡、吃什麼？</h1>
-      <p>從臺北街角到巷弄美味，挑一張卡片開始探索。</p>
+      <p>先選擇地區與縣市，再探索當地美食和景點。</p>
       <nav class="topics-jump" aria-label="主題導覽">
-        <a href="#food-guide">大臺北食物</a>
-        <a href="#attraction-guide">大臺北景點</a>
+        <a href="#food-guide">在地美食</a>
+        <a href="#attraction-guide">特色景點</a>
       </nav>
     </section>
 
-    <section class="guide-section food-section" id="food-guide" aria-labelledby="foodTitle">
+    <section class="location-filter" aria-label="地區與縣市篩選">
+      <h2 class="location-filter-title">選擇想探索的地區</h2>
+      <div class="region-options" id="regionOptions"></div>
+      <div class="city-select-wrap">
+        <label for="citySelect">選擇縣市</label>
+        <select class="city-select" id="citySelect" disabled>
+          <option value="">請先選擇地區</option>
+        </select>
+      </div>
+      <p class="filter-hint" id="filterHint">請先選擇北部、中部、南部、東部或離島，再選擇縣市。</p>
+    </section>
+
+    <section class="guide-section food-section" id="food-guide" aria-labelledby="foodTitle" hidden>
       <div class="guide-heading">
-        <p class="guide-eyebrow">01 / TAIPEI FLAVORS</p>
-        <h2 id="foodTitle">大臺北食物</h2>
-        <p>點擊卡片翻面，看看有哪些在地好店推薦。</p>
+        <p class="guide-eyebrow">01 / LOCAL FLAVORS</p>
+        <h2 id="foodTitle">在地美食</h2>
+        <p>點擊卡片翻面，查看這個縣市的店家搜尋推薦。</p>
       </div>
       <div class="food-grid" id="foodGrid"></div>
     </section>
 
-    <section class="guide-section attraction-section" id="attraction-guide" aria-labelledby="attractionTitle">
+    <section class="guide-section attraction-section" id="attraction-guide" aria-labelledby="attractionTitle" hidden>
       <div class="guide-heading">
         <p class="guide-eyebrow">02 / PLACES TO GO</p>
-        <h2 id="attractionTitle">大臺北景點</h2>
-        <p>從城市地標、老街巷弄到山海綠地，收藏下一段散步路線。</p>
+        <h2 id="attractionTitle">特色景點</h2>
+        <p>每個縣市整理 25 個景點，點擊郵票卡片可查看介紹與地圖位置。</p>
       </div>
       <div class="attraction-grid" id="attractionGrid"></div>
     </section>

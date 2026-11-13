@@ -1,0 +1,1293 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜食材掉落菜籃遊戲</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+    --pink:#f3b5c9;
+    --deep:#d77f9e;
+    --light:#ffe8ef;
+    --cream:#fff9f5;
+    --dark:#634858;
+}
+
+body{
+    margin:0;
+    font-family:Arial,"Noto Sans TC",sans-serif;
+    color:var(--dark);
+    overflow:hidden;
+    background:#fff3f7;
+}
+
+button{font-family:inherit;cursor:pointer}
+
+#game{
+    width:100%;
+    height:100dvh;
+    position:relative;
+    overflow:hidden;
+}
+
+#play-area{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 20% 20%,#ffffff 0 3px,transparent 4px),
+        radial-gradient(circle at 70% 35%,#ffffff 0 3px,transparent 4px),
+        linear-gradient(180deg,#fff8fa,#fce4ed);
+}
+
+#play-area::after{
+    content:"";
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:95px;
+    background:linear-gradient(#f8dce7,#f1c5d7);
+    border-top:3px solid #e8b3c8;
+}
+
+/* 頂部資訊 */
+
+.top-bar{
+    position:absolute;
+    top:0;
+    left:0;
+    width:100%;
+    padding:17px 25px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    z-index:10;
+    pointer-events:none;
+}
+
+.game-title{
+    font-size:21px;
+    font-weight:bold;
+    letter-spacing:2px;
+}
+
+.info-group{
+    display:flex;
+    gap:12px;
+}
+
+.info-card{
+    background:#ffffffed;
+    border:2px solid #f3c7d7;
+    border-radius:16px;
+    padding:9px 17px;
+    min-width:105px;
+    text-align:center;
+    box-shadow:0 3px 10px #d99bb333;
+}
+
+.info-card small{
+    display:block;
+    font-size:11px;
+    color:#a77b90;
+}
+
+.info-card strong{
+    font-size:21px;
+    color:#bd6687;
+}
+
+/* 掉落食材 */
+
+.ingredient{
+    position:absolute;
+    top:-110px;
+    width:94px;
+    height:94px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    pointer-events:none;
+    z-index:3;
+}
+
+.ingredient img{
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    filter:none;
+}
+
+/* 菜籃 */
+
+#basket{
+    position:absolute;
+    width:160px;
+    height:115px;
+    bottom:75px;
+    left:50%;
+    transform:translateX(-50%);
+    z-index:5;
+    touch-action:none;
+    cursor:grab;
+}
+
+#basket:active{cursor:grabbing}
+
+.basket-rim{
+    position:absolute;
+    left:5px;
+    top:28px;
+    width:150px;
+    height:15px;
+    background:linear-gradient(#e6a2bb,#c87897);
+    border:4px solid #b66e8d;
+    border-radius:10px;
+    z-index:3;
+}
+
+.basket-handle{
+    position:absolute;
+    width:105px;
+    height:44px;
+    border:8px solid #bd7895;
+    border-bottom:none;
+    border-radius:65px 65px 0 0;
+    top:0;
+    left:27px;
+}
+
+.basket-body{
+    position:absolute;
+    bottom:0;
+    left:8px;
+    width:144px;
+    height:78px;
+    background:linear-gradient(135deg,#f6b5cd,#e78eae);
+    border:5px solid #bd7895;
+    border-top:0;
+    border-radius:5px 5px 30px 30px;
+    clip-path:polygon(0 0,100% 0,88% 100%,12% 100%);
+    overflow:hidden;
+}
+
+.basket-body::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:repeating-linear-gradient(
+        90deg,transparent 0 15px,#ffffff55 15px 20px
+    );
+}
+
+.basket-decoration{
+    position:absolute;
+    bottom:18px;
+    width:100%;
+    text-align:center;
+    color:white;
+    font-size:14px;
+    font-weight:bold;
+    letter-spacing:3px;
+    z-index:2;
+}
+
+.controls-hint{
+    position:absolute;
+    bottom:17px;
+    left:50%;
+    transform:translateX(-50%);
+    color:#98677f;
+    font-size:13px;
+    background:#ffffffcc;
+    padding:8px 18px;
+    border-radius:30px;
+    z-index:8;
+    white-space:nowrap;
+}
+
+/* 開始畫面 */
+
+.overlay{
+    position:absolute;
+    inset:0;
+    z-index:20;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#fff5f7dd;
+    backdrop-filter:blur(5px);
+}
+
+.start-card{
+    width:min(420px,90%);
+    padding:38px 28px;
+    text-align:center;
+    background:white;
+    border:3px solid #f3c4d5;
+    border-radius:28px;
+    box-shadow:0 12px 35px #c98ba833;
+}
+
+.start-card h1{
+    font-size:28px;
+    color:#c76f91;
+    margin:0 0 12px;
+}
+
+.start-card p{
+    line-height:1.9;
+    color:#98798a;
+    font-size:14px;
+}
+
+.main-button{
+    border:none;
+    background:linear-gradient(135deg,#efaac2,#d9799e);
+    color:white;
+    padding:13px 42px;
+    border-radius:30px;
+    font-size:17px;
+    font-weight:bold;
+    box-shadow:0 5px 12px #d98ba955;
+    margin-top:15px;
+}
+
+/* 結算畫面 */
+
+#result-screen{
+    display:none;
+    position:absolute;
+    inset:0;
+    z-index:30;
+    background:#fff7f9;
+    overflow-y:auto;
+    padding:30px 20px 45px;
+}
+
+.result-container{
+    max-width:1000px;
+    margin:auto;
+}
+
+.result-title{
+    text-align:center;
+    color:#c76f91;
+    font-size:30px;
+    margin:8px 0;
+}
+
+.result-subtitle{
+    text-align:center;
+    color:#a68191;
+    margin-bottom:28px;
+    font-size:14px;
+}
+
+.section-title{
+    font-size:20px;
+    color:#b96787;
+    border-left:5px solid #e8a4bc;
+    padding-left:12px;
+    margin:25px 0 15px;
+}
+
+/* 收集食材 */
+
+.ingredient-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(125px,1fr));
+    gap:14px;
+}
+
+.collected-item{
+    background:white;
+    border:1px solid #f1d3df;
+    border-radius:17px;
+    padding:12px 7px;
+    text-align:center;
+    box-shadow:0 3px 8px #d99bb322;
+}
+
+.collected-item img{
+    width:100px;
+    height:100px;
+    object-fit:contain;
+    filter:none;
+}
+
+.collected-item p{
+    margin:5px 0 0;
+    font-size:14px;
+    color:#765469;
+}
+
+/* 料理卡片 */
+
+.recipe-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+    gap:18px;
+}
+
+.recipe-card{
+    background:white;
+    border:1px solid #f0ccda;
+    border-radius:20px;
+    padding:17px;
+    box-shadow:0 4px 12px #d99bb322;
+    text-align:center;
+}
+
+.recipe-card h3{
+    color:#bd6d8d;
+    font-size:19px;
+    margin:8px 0 12px;
+}
+
+.recipe-image{
+    width:180px;
+    height:150px;
+    object-fit:contain;
+    margin:auto;
+    display:block;
+}
+
+.recipe-ingredients{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:8px;
+    margin-top:12px;
+}
+
+.recipe-ingredient{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    background:#fff1f5;
+    padding:5px 9px;
+    border-radius:10px;
+    font-size:12px;
+}
+
+.recipe-ingredient img{
+    width:32px;
+    height:32px;
+    object-fit:contain;
+    filter:none;
+}
+
+.empty-message{
+    text-align:center;
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    color:#a77e90;
+    line-height:1.8;
+    grid-column:1/-1;
+}
+
+.result-button{
+    display:block;
+    margin:35px auto 10px;
+}
+
+@media(max-width:600px){
+    .top-bar{padding:12px}
+    .game-title{font-size:15px}
+    .info-card{min-width:70px;padding:7px 9px}
+    .info-card strong{font-size:17px}
+    .ingredient{width:78px;height:78px}
+    .controls-hint{font-size:11px}
+    .recipe-image{width:150px;height:130px}
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="play-area">
+
+    <div class="top-bar">
+
+
+        <div class="info-group">
+            <div class="info-card">
+                <small>剩餘時間</small>
+                <strong id="timer">30</strong>
+            </div>
+
+            <div class="info-card">
+                <small>收集種類</small>
+                <strong id="count">0</strong>
+            </div>
+        </div>
+    </div>
+
+    <div id="basket">
+        <div class="basket-handle"></div>
+        <div class="basket-body"></div>
+        <div class="basket-decoration">PICK ME</div>
+        <div class="basket-rim"></div>
+    </div>
+
+    <div class="controls-hint">
+        使用 ← → 或 A、D 移動菜籃，也可以拖曳菜籃
+    </div>
+
+</div>
+
+<div class="overlay" id="start-screen">
+    <div class="start-card">
+        <h1>食材收集大作戰</h1>
+        <p>
+            各種食材會從天空掉落。<br>
+            移動菜籃，收集不同種類的食材。<br>
+            30 秒結束後，看看能組合出哪些料理！
+        </p>
+        <button class="main-button" onclick="startGame()">開始遊戲</button>
+    </div>
+</div>
+
+<div id="result-screen">
+    <div class="result-container">
+
+        <h1 class="result-title">食材收集完成</h1>
+        <p class="result-subtitle" id="result-summary"></p>
+
+        <h2 class="section-title">本次收集的食材</h2>
+        <div class="ingredient-list" id="collected-list"></div>
+
+        <h2 class="section-title">可以製作的料理</h2>
+        <div class="recipe-list" id="recipe-list"></div>
+
+        <button class="main-button result-button" onclick="restartGame()">
+            再玩一次
+        </button>
+
+    </div>
+</div>
+
+</div>
+
+<script>
+
+/* =========================
+   食材資料
+========================= */
+
+const ingredients = [
+    {id:"tomato",name:"番茄",color:"#e85c55",type:"round"},
+    {id:"potato",name:"馬鈴薯",color:"#c79b60",type:"round"},
+    {id:"carrot",name:"紅蘿蔔",color:"#ef9a43",type:"long"},
+    {id:"corn",name:"玉米",color:"#f2ca4b",type:"long"},
+    {id:"cabbage",name:"高麗菜",color:"#80bd83",type:"leaf"},
+    {id:"broccoli",name:"花椰菜",color:"#66a96e",type:"broccoli"},
+    {id:"eggplant",name:"茄子",color:"#9571ac",type:"long"},
+    {id:"mushroom",name:"香菇",color:"#bc9577",type:"mushroom"},
+    {id:"onion",name:"洋蔥",color:"#bd83a4",type:"round"},
+    {id:"pumpkin",name:"南瓜",color:"#e89b4b",type:"pumpkin"},
+    {id:"cucumber",name:"小黃瓜",color:"#6eaa69",type:"long"},
+    {id:"pepper",name:"青椒",color:"#77a85e",type:"pepper"},
+
+    {id:"apple",name:"蘋果",color:"#e75c61",type:"round"},
+    {id:"strawberry",name:"草莓",color:"#ed647b",type:"strawberry"},
+    {id:"banana",name:"香蕉",color:"#efcf61",type:"banana"},
+
+    {id:"chicken",name:"雞肉",color:"#e5ad81",type:"meat"},
+    {id:"pork",name:"豬肉",color:"#eaa3a3",type:"meat"},
+    {id:"beef",name:"牛肉",color:"#a95e5d",type:"meat"},
+    {id:"bacon",name:"培根",color:"#d77c79",type:"bacon"},
+
+    {id:"fish",name:"魚肉",color:"#79a9c8",type:"fish"},
+    {id:"shrimp",name:"蝦子",color:"#e98d7e",type:"shrimp"},
+    {id:"squid",name:"花枝",color:"#d8b4bd",type:"fish"},
+
+    {id:"egg",name:"雞蛋",color:"#fff0cb",type:"egg"},
+    {id:"cheese",name:"起司",color:"#f2c957",type:"cheese"},
+    {id:"milk",name:"牛奶",color:"#e8edf1",type:"bottle"},
+    {id:"butter",name:"奶油",color:"#f1d27a",type:"butter"},
+
+    {id:"flour",name:"麵粉",color:"#eee0c4",type:"bag"},
+    {id:"rice",name:"米",color:"#f4eddb",type:"rice"},
+    {id:"noodles",name:"麵條",color:"#e5c77e",type:"noodles"},
+    {id:"bread",name:"麵包",color:"#c99561",type:"bread"},
+
+    {id:"tofu",name:"豆腐",color:"#f3e8d2",type:"cube"}
+];
+
+/* =========================
+   卡通食材 SVG 圖片
+========================= */
+
+function cartoonSVG(item){
+
+    let shape = "";
+    const c = item.color;
+
+    switch(item.type){
+
+        case "long":
+            shape = `
+            <path d="M43 91 Q25 48 65 14 Q95 25 79 74 Q65 100 43 91Z"
+            fill="${c}" stroke="#765c50" stroke-width="3"/>
+            <path d="M61 26 Q55 53 55 80" fill="none" stroke="#ffffff77" stroke-width="5"/>
+            <path d="M62 17 Q56 3 43 8 Q52 21 62 22" fill="#6f9e68"/>
+            `;
+            break;
+
+        case "leaf":
+            shape = `
+            <path d="M50 90 Q8 77 19 38 Q39 11 57 40 Q81 5 98 38 Q106 79 50 90Z"
+            fill="${c}" stroke="#648d65" stroke-width="3"/>
+            <path d="M52 88 Q49 52 55 24 M51 59 L28 40 M56 51 L85 34"
+            stroke="#ffffffaa" stroke-width="4" fill="none"/>
+            `;
+            break;
+
+        case "broccoli":
+            shape = `
+            <rect x="40" y="55" width="22" height="43" rx="8" fill="#a8bc77"/>
+            <circle cx="39" cy="44" r="24" fill="${c}"/>
+            <circle cx="65" cy="31" r="25" fill="${c}"/>
+            <circle cx="82" cy="52" r="23" fill="${c}"/>
+            <circle cx="57" cy="57" r="26" fill="${c}"/>
+            `;
+            break;
+
+        case "mushroom":
+            shape = `
+            <path d="M40 49 Q43 32 67 32 Q86 33 88 49 L80 90 Q62 102 45 90Z"
+            fill="#f1e4d2" stroke="#92745e" stroke-width="3"/>
+            <path d="M18 53 Q21 17 63 13 Q98 13 103 53Z"
+            fill="${c}" stroke="#92745e" stroke-width="3"/>
+            <circle cx="51" cy="34" r="5" fill="#fff"/>
+            `;
+            break;
+
+        case "pumpkin":
+            shape = `
+            <ellipse cx="58" cy="58" rx="43" ry="37" fill="${c}" stroke="#a66d43" stroke-width="3"/>
+            <path d="M58 21 Q37 59 58 95 M58 21 Q80 58 58 95 M58 21 L58 95"
+            fill="none" stroke="#ffffff77" stroke-width="4"/>
+            <path d="M56 24 Q52 12 64 8" stroke="#66895c" stroke-width="7" fill="none"/>
+            `;
+            break;
+
+        case "pepper":
+            shape = `
+            <path d="M51 26 Q34 13 24 38 Q10 81 42 94 Q55 101 61 83 Q69 101 84 91 Q109 71 89 34 Q77 13 59 27Z"
+            fill="${c}" stroke="#638353" stroke-width="3"/>
+            <path d="M57 29 Q53 12 67 8" fill="none" stroke="#648d65" stroke-width="7"/>
+            `;
+            break;
+
+        case "strawberry":
+            shape = `
+            <path d="M23 37 Q58 10 94 37 Q94 62 58 96 Q22 62 23 37Z"
+            fill="${c}" stroke="#ad5264" stroke-width="3"/>
+            <path d="M56 28 Q44 8 32 15 M56 28 Q70 6 86 15"
+            stroke="#679665" stroke-width="8" fill="none"/>
+            <g fill="#ffe7a4">
+            <circle cx="42" cy="46" r="3"/><circle cx="70" cy="45" r="3"/>
+            <circle cx="55" cy="62" r="3"/><circle cx="39" cy="66" r="3"/>
+            <circle cx="72" cy="71" r="3"/>
+            </g>
+            `;
+            break;
+
+        case "banana":
+            shape = `
+            <path d="M19 25 Q25 85 83 90 Q104 85 104 68 Q79 82 49 55 Q30 38 30 20Z"
+            fill="${c}" stroke="#b69a4e" stroke-width="3"/>
+            <path d="M24 22 L17 16 M101 68 L107 63" stroke="#876f45" stroke-width="7"/>
+            `;
+            break;
+
+        case "meat":
+        case "bacon":
+            shape = `
+            <path d="M23 28 Q44 9 79 25 Q103 43 89 78 Q70 100 35 85 Q13 68 23 28Z"
+            fill="${c}" stroke="#a36e64" stroke-width="3"/>
+            <path d="M33 40 Q53 28 77 46 M34 62 Q56 50 80 67"
+            stroke="#fff0dd" stroke-width="9" fill="none" stroke-linecap="round"/>
+            `;
+            break;
+
+        case "fish":
+            shape = `
+            <path d="M17 56 Q50 13 89 52 Q50 96 17 56Z"
+            fill="${c}" stroke="#66889c" stroke-width="3"/>
+            <path d="M88 53 L108 28 L108 80Z" fill="${c}" stroke="#66889c" stroke-width="3"/>
+            <path d="M51 35 Q66 54 51 75" fill="none" stroke="#ffffff88" stroke-width="3"/>
+            `;
+            break;
+
+        case "shrimp":
+            shape = `
+            <path d="M22 72 Q13 34 50 23 Q91 14 94 53 Q96 83 64 87 Q43 91 37 70 Q32 55 49 47"
+            fill="none" stroke="${c}" stroke-width="21" stroke-linecap="round"/>
+            <path d="M22 72 Q13 34 50 23 Q91 14 94 53"
+            fill="none" stroke="#a95c55" stroke-width="3"/>
+            `;
+            break;
+
+        case "egg":
+            shape = `
+            <ellipse cx="59" cy="56" rx="35" ry="45" fill="${c}" stroke="#c6b79a" stroke-width="3"/>
+            <ellipse cx="46" cy="34" rx="9" ry="14" fill="#ffffff99"/>
+            `;
+            break;
+
+        case "cheese":
+            shape = `
+            <path d="M19 73 L40 27 L101 47 L88 87Z"
+            fill="${c}" stroke="#bd9846" stroke-width="3"/>
+            <circle cx="49" cy="52" r="6" fill="#fff0a8"/>
+            <circle cx="76" cy="62" r="7" fill="#fff0a8"/>
+            <circle cx="55" cy="77" r="4" fill="#fff0a8"/>
+            `;
+            break;
+
+        case "bottle":
+            shape = `
+            <rect x="47" y="12" width="27" height="16" rx="4" fill="#d8a6b8"/>
+            <path d="M43 27 L77 27 L84 42 L84 88 Q60 102 36 88 L36 42Z"
+            fill="${c}" stroke="#a7aab3" stroke-width="3"/>
+            <path d="M45 48 L45 82" stroke="#fff" stroke-width="6" opacity=".8"/>
+            `;
+            break;
+
+        case "butter":
+            shape = `
+            <path d="M20 44 L79 28 L100 62 L39 86Z"
+            fill="${c}" stroke="#bda45d" stroke-width="3"/>
+            <path d="M39 86 L39 62 L100 43 L100 62Z"
+            fill="#e8bc57" stroke="#bda45d" stroke-width="3"/>
+            `;
+            break;
+
+        case "bag":
+            shape = `
+            <path d="M31 30 L85 30 L96 91 Q60 108 20 91Z"
+            fill="${c}" stroke="#b7a68c" stroke-width="3"/>
+            <path d="M31 30 Q57 48 85 30" fill="none" stroke="#b7a68c" stroke-width="4"/>
+            <path d="M43 54 L72 54" stroke="#c8b79b" stroke-width="3"/>
+            `;
+            break;
+
+        case "rice":
+            shape = `
+            <path d="M19 49 Q59 27 99 49 L91 88 Q60 105 27 88Z"
+            fill="${c}" stroke="#b5a990" stroke-width="3"/>
+            <g fill="#ffffff" stroke="#d4cbb8" stroke-width="1">
+            <ellipse cx="40" cy="48" rx="6" ry="3"/>
+            <ellipse cx="57" cy="40" rx="6" ry="3"/>
+            <ellipse cx="75" cy="48" rx="6" ry="3"/>
+            <ellipse cx="50" cy="60" rx="6" ry="3"/>
+            <ellipse cx="72" cy="63" rx="6" ry="3"/>
+            </g>
+            `;
+            break;
+
+        case "noodles":
+            shape = `
+            <path d="M25 40 Q40 90 53 40 Q65 10 76 72 Q88 93 97 40"
+            fill="none" stroke="${c}" stroke-width="10" stroke-linecap="round"/>
+            <path d="M25 52 Q50 95 75 51" fill="none" stroke="#c4a45d" stroke-width="3"/>
+            `;
+            break;
+
+        case "bread":
+            shape = `
+            <path d="M24 87 Q13 79 20 55 L25 35 Q36 9 63 18 Q93 9 100 41 L101 80 Q76 103 24 87Z"
+            fill="${c}" stroke="#9e714e" stroke-width="4"/>
+            <path d="M35 37 Q56 19 82 37" fill="none" stroke="#f3d7a7" stroke-width="6"/>
+            `;
+            break;
+
+        case "cube":
+            shape = `
+            <path d="M24 34 L62 19 L96 36 L58 54Z" fill="#fff5e5" stroke="#c4b49b" stroke-width="3"/>
+            <path d="M24 34 L58 54 L58 96 L24 76Z" fill="${c}" stroke="#c4b49b" stroke-width="3"/>
+            <path d="M58 54 L96 36 L96 78 L58 96Z" fill="#eee1cc" stroke="#c4b49b" stroke-width="3"/>
+            `;
+            break;
+
+        default:
+            shape = `
+            <path d="M20 56 Q18 20 56 20 Q96 17 98 57 Q96 96 56 96 Q20 96 20 56Z"
+            fill="${c}" stroke="#a77b6b" stroke-width="3"/>
+            <path d="M53 21 Q51 8 65 8" fill="none" stroke="#6c9664" stroke-width="7"/>
+            <path d="M36 39 Q52 25 69 37" fill="none" stroke="#ffffff77" stroke-width="6"/>
+            `;
+    }
+
+    return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+        ${shape}
+    </svg>`;
+}
+
+function imageURL(svg){
+    return "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+}
+
+function ingredientImage(item){
+    return imageURL(cartoonSVG(item));
+}
+
+/* =========================
+   料理資料
+========================= */
+
+const recipes = [
+    {name:"馬鈴薯燉肉",ingredients:["potato","carrot","pork"]},
+    {name:"雞肉咖哩",ingredients:["chicken","potato","carrot"]},
+    {name:"牛肉飯",ingredients:["beef","rice","onion"]},
+    {name:"鮮蝦炒飯",ingredients:["rice","shrimp","egg"]},
+    {name:"炸豬排",ingredients:["pork","flour","egg"]},
+    {name:"草莓蛋糕",ingredients:["strawberry","flour","egg","milk"]},
+    {name:"香蕉鬆餅",ingredients:["banana","flour","egg","milk"]},
+    {name:"玉米濃湯",ingredients:["corn","milk","butter"]},
+    {name:"豬肉水餃",ingredients:["pork","cabbage","flour"]},
+    {name:"牛肉麵",ingredients:["beef","noodles","tomato"]},
+    {name:"培根蛋吐司",ingredients:["bacon","egg","bread"]},
+    {name:"南瓜濃湯",ingredients:["pumpkin","milk","butter"]},
+    {name:"番茄肉醬麵",ingredients:["tomato","beef","noodles"]},
+    {name:"奶油蘑菇麵",ingredients:["mushroom","milk","butter","noodles"]},
+    {name:"玉米蛋餅",ingredients:["corn","egg","flour"]},
+    {name:"蝦仁炒麵",ingredients:["shrimp","noodles","cabbage"]},
+    {name:"花枝炒飯",ingredients:["squid","rice","egg"]},
+    {name:"馬鈴薯沙拉",ingredients:["potato","carrot","egg"]},
+    {name:"蘋果派",ingredients:["apple","flour","butter"]},
+    {name:"香菇炒飯",ingredients:["mushroom","rice","egg"]},
+    {name:"高麗菜炒肉",ingredients:["cabbage","pork","onion"]},
+    {name:"雞肉蔬菜湯",ingredients:["chicken","carrot","potato","onion"]},
+    {name:"番茄燉牛肉",ingredients:["tomato","beef","carrot","onion"]},
+    {name:"海鮮炒麵",ingredients:["shrimp","squid","noodles","cabbage"]},
+    {name:"起司焗飯",ingredients:["rice","cheese","milk"]},
+    {name:"雞肉三明治",ingredients:["chicken","bread","cheese"]},
+    {name:"香煎魚排",ingredients:["fish","butter","flour"]},
+    {name:"豆腐蔬菜湯",ingredients:["tofu","carrot","cabbage"]},
+    {name:"青椒炒肉絲",ingredients:["pepper","pork","onion"]},
+    {name:"番茄雞肉義大利麵",ingredients:["tomato","chicken","noodles"]},
+    {name:"奶油培根義大利麵",ingredients:["bacon","milk","butter","noodles"]},
+    {name:"花枝海鮮湯",ingredients:["squid","shrimp","fish","onion"]},
+    {name:"玉米雞肉飯",ingredients:["corn","chicken","rice"]},
+    {name:"茄汁肉丸",ingredients:["tomato","beef","egg"]},
+    {name:"高麗菜豬肉湯",ingredients:["cabbage","pork","tofu"]},
+
+    /* 兩種食材料理 */
+
+    {name:"番茄炒蛋",ingredients:["tomato","egg"]},
+    {name:"香蕉牛奶",ingredients:["banana","milk"]},
+    {name:"起司吐司",ingredients:["cheese","bread"]},
+    {name:"奶油玉米",ingredients:["corn","butter"]},
+    {name:"蘋果牛奶",ingredients:["apple","milk"]},
+    {name:"豆腐煎蛋",ingredients:["tofu","egg"]},
+    {name:"香菇炒高麗菜",ingredients:["mushroom","cabbage"]},
+    {name:"馬鈴薯起司",ingredients:["potato","cheese"]},
+    {name:"培根炒蛋",ingredients:["bacon","egg"]},
+    {name:"草莓牛奶",ingredients:["strawberry","milk"]}
+];
+
+/* =========================
+   料理卡通圖
+========================= */
+
+function recipeSVG(recipe){
+
+    const colors = recipe.ingredients.map(id => {
+        return ingredients.find(x => x.id === id).color;
+    });
+
+    let food = "";
+
+    colors.forEach((color,i) => {
+
+        const x = 42 + (i % 3) * 25;
+        const y = 48 + Math.floor(i / 3) * 18;
+
+        food += `
+        <ellipse cx="${x}" cy="${y}" rx="15" ry="12"
+        fill="${color}" stroke="#ffffff" stroke-width="2"/>
+        `;
+    });
+
+    return `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 130">
+        <ellipse cx="75" cy="77" rx="65" ry="44"
+        fill="#e9d7d0"/>
+        <ellipse cx="75" cy="72" rx="59" ry="39"
+        fill="#fffdf8" stroke="#d6b9b4" stroke-width="4"/>
+        <ellipse cx="75" cy="72" rx="48" ry="30"
+        fill="#f8e9d2"/>
+        ${food}
+        <path d="M36 28 Q75 10 114 28"
+        fill="none" stroke="#ffffff" stroke-width="4" opacity=".8"/>
+    </svg>`;
+}
+
+function recipeImage(recipe){
+    return imageURL(recipeSVG(recipe));
+}
+
+/* =========================
+   遊戲變數
+========================= */
+
+const playArea = document.getElementById("play-area");
+const basket = document.getElementById("basket");
+const basketRim = basket.querySelector(".basket-rim");
+
+let collected = new Set();
+let fallingItems = [];
+
+let gameRunning = false;
+let timeLeft = 30;
+
+let timerInterval = null;
+let spawnInterval = null;
+let animationFrame = null;
+
+let basketX = 0;
+let keys = {};
+
+const GAME_TIME = 30;
+
+/* =========================
+   菜籃位置
+========================= */
+
+function setBasketPosition(x){
+
+    const max = playArea.clientWidth - basket.offsetWidth;
+
+    basketX = Math.max(0,Math.min(x,max));
+
+    basket.style.left = basketX + "px";
+    basket.style.transform = "none";
+}
+
+function initializeBasket(){
+
+    setBasketPosition(
+        (playArea.clientWidth-basket.offsetWidth)/2
+    );
+}
+
+/* =========================
+   開始遊戲
+========================= */
+
+function startGame(){
+
+    document.getElementById("start-screen").style.display="none";
+    document.getElementById("result-screen").style.display="none";
+
+    clearInterval(timerInterval);
+    clearInterval(spawnInterval);
+    cancelAnimationFrame(animationFrame);
+
+    collected.clear();
+
+    fallingItems.forEach(item=>item.element.remove());
+    fallingItems=[];
+
+    timeLeft=GAME_TIME;
+
+    document.getElementById("timer").textContent=timeLeft;
+    document.getElementById("count").textContent="0";
+
+    gameRunning=true;
+
+    initializeBasket();
+
+    spawnInterval=setInterval(createIngredient,1100);
+
+    timerInterval=setInterval(()=>{
+
+        timeLeft--;
+
+        document.getElementById("timer").textContent=timeLeft;
+
+        if(timeLeft<=0){
+            endGame();
+        }
+
+    },1000);
+
+    animate();
+}
+
+/* =========================
+   產生食材
+========================= */
+
+function createIngredient(){
+
+    if(!gameRunning)return;
+
+    const item=ingredients[
+        Math.floor(Math.random()*ingredients.length)
+    ];
+
+    const element=document.createElement("div");
+    element.className="ingredient";
+
+    const img=document.createElement("img");
+    img.src=ingredientImage(item);
+    img.alt=item.name;
+    img.draggable=false;
+
+    element.appendChild(img);
+
+    const width=94;
+    const maxX=playArea.clientWidth-width;
+    const x=Math.random()*maxX;
+
+    element.style.left=x+"px";
+
+    playArea.appendChild(element);
+
+    const speedTypes=[1.2,2.0,3.0,4.2];
+    const speed=speedTypes[
+        Math.floor(Math.random()*speedTypes.length)
+    ];
+
+    fallingItems.push({
+        element,
+        item,
+        x,
+        y:-110,
+        speed,
+        width,
+        height:94
+    });
+}
+
+/* =========================
+   動畫與碰撞判定
+========================= */
+
+function animate(){
+
+    if(!gameRunning)return;
+
+    /*
+      取得水平籃口的實際位置。
+      使用 basket-rim 的矩形位置，
+      不再使用籃子本體上緣或提把位置。
+    */
+
+    const playRect = playArea.getBoundingClientRect();
+    const rimRect = basketRim.getBoundingClientRect();
+
+    const basketOpeningY = rimRect.top - playRect.top;
+
+    const basketOpeningLeft = rimRect.left - playRect.left;
+    const basketOpeningRight = rimRect.right - playRect.left;
+
+    for(let i=fallingItems.length-1;i>=0;i--){
+
+        const item=fallingItems[i];
+
+        const previousBottom=item.y+item.height;
+
+        item.y+=item.speed;
+
+        const currentBottom=item.y+item.height;
+
+        item.element.style.top=item.y+"px";
+
+        const itemLeft=item.x;
+        const itemRight=item.x+item.width;
+
+        /*
+          判定食材是否碰到水平籃口：
+
+          1. 食材底部由上往下碰到籃口高度。
+          2. 食材左右範圍與水平籃口左右範圍重疊。
+          3. 不使用菜籃本體底部上緣或提把作為判定位置。
+        */
+
+        const touchesBasketOpening =
+            previousBottom < basketOpeningY &&
+            currentBottom >= basketOpeningY;
+
+        const overlapsBasketOpening =
+            itemRight > basketOpeningLeft &&
+            itemLeft < basketOpeningRight;
+
+        if(touchesBasketOpening && overlapsBasketOpening){
+
+            collectIngredient(item.item);
+
+            item.element.remove();
+            fallingItems.splice(i,1);
+
+            continue;
+        }
+
+        if(item.y>playArea.clientHeight){
+
+            item.element.remove();
+            fallingItems.splice(i,1);
+        }
+    }
+
+    /* 鍵盤控制 */
+
+    if(keys["ArrowLeft"]||keys["a"]||keys["A"]){
+        setBasketPosition(basketX-6);
+    }
+
+    if(keys["ArrowRight"]||keys["d"]||keys["D"]){
+        setBasketPosition(basketX+6);
+    }
+
+    animationFrame=requestAnimationFrame(animate);
+}
+
+/* =========================
+   收集食材
+========================= */
+
+function collectIngredient(item){
+
+    if(!collected.has(item.id)){
+
+        collected.add(item.id);
+
+        document.getElementById("count").textContent=
+            collected.size;
+    }
+}
+
+/* =========================
+   鍵盤操作
+========================= */
+
+window.addEventListener("keydown",e=>{
+
+    if(["ArrowLeft","ArrowRight"," "].includes(e.key)){
+        e.preventDefault();
+    }
+
+    keys[e.key]=true;
+});
+
+window.addEventListener("keyup",e=>{
+    keys[e.key]=false;
+});
+
+/* =========================
+   拖曳菜籃
+========================= */
+
+let dragging=false;
+let dragOffset=0;
+
+basket.addEventListener("pointerdown",e=>{
+
+    if(!gameRunning)return;
+
+    dragging=true;
+
+    dragOffset=e.clientX-basket.getBoundingClientRect().left;
+
+    basket.setPointerCapture(e.pointerId);
+});
+
+basket.addEventListener("pointermove",e=>{
+
+    if(!dragging||!gameRunning)return;
+
+    const rect=playArea.getBoundingClientRect();
+
+    const x=e.clientX-rect.left-dragOffset;
+
+    setBasketPosition(x);
+});
+
+basket.addEventListener("pointerup",()=>{
+    dragging=false;
+});
+
+basket.addEventListener("pointercancel",()=>{
+    dragging=false;
+});
+
+/* =========================
+   結束遊戲
+========================= */
+
+function endGame(){
+
+    if(!gameRunning)return;
+
+    gameRunning=false;
+
+    clearInterval(timerInterval);
+    clearInterval(spawnInterval);
+
+    cancelAnimationFrame(animationFrame);
+
+    fallingItems.forEach(item=>item.element.remove());
+    fallingItems=[];
+
+    showResults();
+}
+
+/* =========================
+   顯示結算
+========================= */
+
+function showResults(){
+
+    document.getElementById("result-screen").style.display="block";
+
+    document.getElementById("result-summary").textContent=
+        "總共收集到 "+collected.size+" 種不同食材";
+
+    const collectedList=document.getElementById("collected-list");
+
+    collectedList.innerHTML="";
+
+    const collectedIngredients=ingredients.filter(
+        item=>collected.has(item.id)
+    );
+
+    if(collectedIngredients.length===0){
+
+        collectedList.innerHTML=`
+        <div class="empty-message">
+            這次沒有收集到食材，再試一次吧！
+        </div>`;
+
+    }else{
+
+        collectedIngredients.forEach(item=>{
+
+            const card=document.createElement("div");
+            card.className="collected-item";
+
+            const img=document.createElement("img");
+            img.src=ingredientImage(item);
+            img.alt=item.name;
+
+            const name=document.createElement("p");
+            name.textContent=item.name;
+
+            card.appendChild(img);
+            card.appendChild(name);
+
+            collectedList.appendChild(card);
+        });
+    }
+
+    /*
+      料理解鎖條件：
+      1. 料理至少需要兩種不同食材。
+      2. 必須收集到該料理的全部指定食材。
+    */
+
+    const availableRecipes=recipes.filter(recipe=>{
+
+        return recipe.ingredients.length>=2 &&
+            recipe.ingredients.every(id=>collected.has(id));
+
+    });
+
+    const recipeList=document.getElementById("recipe-list");
+
+    recipeList.innerHTML="";
+
+    if(availableRecipes.length===0){
+
+        recipeList.innerHTML=`
+        <div class="empty-message">
+            目前還沒有解鎖料理。<br>
+            收集到料理所需的至少兩種不同食材，就能解鎖組合！
+        </div>`;
+
+    }else{
+
+        availableRecipes.forEach(recipe=>{
+
+            const card=document.createElement("div");
+            card.className="recipe-card";
+
+            const dish=document.createElement("img");
+            dish.className="recipe-image";
+            dish.src=recipeImage(recipe);
+            dish.alt=recipe.name;
+
+            const title=document.createElement("h3");
+            title.textContent=recipe.name;
+
+            const ingredientBox=document.createElement("div");
+            ingredientBox.className="recipe-ingredients";
+
+            recipe.ingredients.forEach(id=>{
+
+                const item=ingredients.find(
+                    ingredient=>ingredient.id===id
+                );
+
+                const tag=document.createElement("div");
+                tag.className="recipe-ingredient";
+
+                const img=document.createElement("img");
+                img.src=ingredientImage(item);
+                img.alt=item.name;
+
+                const name=document.createElement("span");
+                name.textContent=item.name;
+
+                tag.appendChild(img);
+                tag.appendChild(name);
+
+                ingredientBox.appendChild(tag);
+            });
+
+            card.appendChild(dish);
+            card.appendChild(title);
+            card.appendChild(ingredientBox);
+
+            recipeList.appendChild(card);
+        });
+    }
+}
+
+/* =========================
+   重新開始
+========================= */
+
+function restartGame(){
+
+    document.getElementById("result-screen").style.display="none";
+
+    startGame();
+}
+
+window.addEventListener("resize",()=>{
+    if(gameRunning){
+        setBasketPosition(basketX);
+    }
+});
+
+</script>
+
+</body>
+</html>

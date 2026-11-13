@@ -1,0 +1,1841 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜天空飛行選擇器</title>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+  --pink:#f3b5c9;
+  --deep:#d77f9e;
+  --light:#ffe8ef;
+  --cream:#fff8f2;
+  --dark:#654657;
+}
+
+body{
+  margin:0;
+  overflow:hidden;
+  font-family:"Microsoft JhengHei",sans-serif;
+  background:#b8d9ed;
+  color:var(--dark);
+}
+
+button{
+  font-family:inherit;
+  cursor:pointer;
+  border:none;
+}
+
+#game{position:fixed;inset:0}
+#game canvas{display:block;width:100%;height:100%}
+
+.screen{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:rgba(255,244,248,.88);
+  backdrop-filter:blur(8px);
+  padding:20px;
+}
+
+.panel{
+  width:min(900px,100%);
+  max-height:90vh;
+  overflow-y:auto;
+  background:var(--cream);
+  border:5px solid white;
+  border-radius:28px;
+  padding:30px;
+  box-shadow:0 12px 40px rgba(125,75,100,.18);
+  text-align:center;
+}
+
+h1{
+  margin:0 0 10px;
+  color:#bd6689;
+  font-size:clamp(25px,5vw,38px);
+}
+
+.subtitle{
+  color:#997687;
+  margin:0 0 24px;
+  line-height:1.7;
+}
+
+.primary{
+  background:linear-gradient(135deg,#f5b5cb,#d77f9e);
+  color:white;
+  font-size:18px;
+  font-weight:bold;
+  padding:14px 38px;
+  border-radius:30px;
+  box-shadow:0 5px 0 #bd6e8c;
+  transition:.2s;
+}
+
+.primary:hover{transform:translateY(-2px)}
+.primary:active{
+  transform:translateY(2px);
+  box-shadow:0 2px 0 #bd6e8c;
+}
+
+.primary:disabled{
+  opacity:.45;
+  cursor:not-allowed;
+  transform:none;
+}
+
+.hidden{display:none!important}
+
+/* 開始畫面 */
+#startScreen{
+  background:
+    linear-gradient(rgba(255,245,249,.82),rgba(255,245,249,.9)),
+    radial-gradient(circle at 20% 20%,#fff,transparent 45%);
+}
+
+.start-card{max-width:560px}
+.start-icon{font-size:76px;margin-bottom:12px}
+
+.rule-list{
+  text-align:left;
+  line-height:2;
+  background:#fff0f5;
+  border-radius:18px;
+  padding:18px 25px;
+  margin:22px 0;
+  color:#8c6678;
+}
+
+/* 地圖選擇 */
+#mapScreen{display:none}
+#mapScreen.active{display:flex}
+.map-panel{width:min(1100px,100%)}
+
+.map-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:13px;
+  margin:22px 0;
+}
+
+.map-card{
+  height:145px;
+  position:relative;
+  border-radius:13px;
+  border:3px solid white;
+  box-shadow:0 4px 10px rgba(90,55,70,.15);
+  overflow:hidden;
+  cursor:pointer;
+  transition:.2s;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.map-card:hover{
+  transform:translateY(-5px) scale(1.025);
+  box-shadow:0 8px 16px rgba(90,55,70,.2);
+}
+
+.parchment{
+  width:72%;
+  height:78%;
+  position:relative;
+  border-radius:9px;
+  background:
+    linear-gradient(90deg,rgba(120,70,40,.12),transparent 12%,transparent 88%,rgba(120,70,40,.12)),
+    linear-gradient(135deg,#f7e5bd,#fff1d5 48%,#e9d0a5);
+  box-shadow:0 3px 7px rgba(70,45,30,.25);
+  transform:rotate(var(--rotation));
+}
+
+.parchment::before,
+.parchment::after{
+  content:"";
+  position:absolute;
+  left:-5px;
+  right:-5px;
+  height:9px;
+  border-radius:50%;
+  background:linear-gradient(#c69b6a,#f2d9aa,#b78c5c);
+  box-shadow:0 2px 3px rgba(70,45,30,.2);
+}
+
+.parchment::before{top:-3px}
+.parchment::after{bottom:-3px}
+
+.map-art{
+  position:absolute;
+  inset:12px;
+  border:1px dashed rgba(130,91,58,.4);
+  border-radius:4px;
+  overflow:hidden;
+}
+
+.map-art svg{width:100%;height:100%}
+
+.map-seal{
+  position:absolute;
+  width:27px;
+  height:27px;
+  border-radius:50%;
+  right:5px;
+  bottom:5px;
+  border:2px solid rgba(255,255,255,.65);
+  box-shadow:0 2px 4px rgba(0,0,0,.18);
+}
+
+.map-ribbon{
+  position:absolute;
+  width:17px;
+  height:100%;
+  left:10px;
+  top:0;
+  opacity:.7;
+  transform:rotate(12deg);
+}
+
+.map-card.selected{
+  outline:4px solid #d77f9e;
+  transform:scale(1.05);
+}
+
+.map-card.selected::after{
+  content:"✓";
+  position:absolute;
+  top:6px;
+  right:7px;
+  width:25px;
+  height:25px;
+  background:#d77f9e;
+  color:white;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-weight:bold;
+}
+
+.map-hint{
+  color:#a17b8b;
+  font-size:14px;
+  margin:10px 0 20px;
+}
+
+/* 飛行 HUD */
+#hud{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:5;
+  pointer-events:none;
+  color:white;
+  text-shadow:0 2px 5px rgba(30,55,80,.8);
+}
+
+#hud.active{display:block}
+
+.hud-top{
+  position:absolute;
+  top:18px;
+  left:20px;
+  right:20px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.hud-box{
+  padding:10px 16px;
+  border:1px solid rgba(255,255,255,.6);
+  background:rgba(49,76,100,.35);
+  backdrop-filter:blur(5px);
+  border-radius:12px;
+  font-size:14px;
+}
+
+.crosshair{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:50px;
+  height:50px;
+  transform:translate(-50%,-50%);
+}
+
+.crosshair::before,
+.crosshair::after{
+  content:"";
+  position:absolute;
+  background:rgba(255,255,255,.85);
+}
+
+.crosshair::before{
+  width:2px;
+  height:50px;
+  left:24px;
+}
+
+.crosshair::after{
+  width:50px;
+  height:2px;
+  top:24px;
+}
+
+#eventAlert{
+  position:absolute;
+  left:50%;
+  top:132px;
+  transform:translateX(-50%);
+  display:none;
+  align-items:center;
+  gap:9px;
+  padding:9px 16px;
+  border:1px solid rgba(255,83,83,.75);
+  border-radius:12px;
+  background:rgba(86,24,31,.82);
+  white-space:nowrap;
+  font-size:14px;
+  font-weight:700;
+  box-shadow:0 4px 16px rgba(0,0,0,.24);
+}
+
+#eventAlert.visible{display:flex}
+
+#eventAlert.info{
+  border-color:rgba(255,255,255,.55);
+  background:rgba(49,76,100,.82);
+}
+
+.event-alert-icon{
+  color:#ff4d55;
+  font-size:19px;
+  line-height:1;
+}
+
+#navigation{
+  position:absolute;
+  top:76px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px 13px;
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:18px;
+  background:rgba(49,76,100,.42);
+  backdrop-filter:blur(5px);
+  font-size:12px;
+}
+
+#targetArrow{
+  display:inline-block;
+  color:#ffe5a7;
+  font-size:22px;
+  line-height:1;
+  transition:transform .12s linear;
+}
+
+/* 駕駛艙 */
+#cockpit{
+  position:fixed;
+  z-index:4;
+  pointer-events:none;
+  bottom:0;
+  left:0;
+  width:100%;
+  height:32%;
+  background:
+    linear-gradient(175deg,transparent 0 18%,#252a39 18.5% 21%,transparent 21.5%),
+    linear-gradient(180deg,transparent 0 20%,#555b6d 21%,#303646 35%,#191e2a 100%);
+  clip-path:polygon(0 31%,15% 10%,35% 0,65% 0,85% 10%,100% 31%,100% 100%,0 100%);
+}
+
+.cockpit-dash{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:42%;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  padding:12px clamp(20px,7vw,110px) 0;
+  background:
+    linear-gradient(180deg,#81899a 0,#3b4253 9px,#262c3b 12px,#171c28 100%);
+  border-top:1px solid #c8d0dd88;
+  box-shadow:0 -8px 26px #0e142566,inset 0 2px 6px #ffffff38;
+}
+
+.cockpit-dash::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:0;
+  transform:translateX(-50%);
+  width:min(38%,460px);
+  height:100%;
+  background:linear-gradient(180deg,#41495a,#242a38 20%,#151a26);
+  clip-path:polygon(8% 0,92% 0,100% 100%,0 100%);
+  border-left:1px solid #98a2b666;
+  border-right:1px solid #98a2b666;
+}
+
+.cockpit-stack{
+  position:relative;
+  z-index:1;
+  display:flex;
+  gap:9px;
+}
+
+.cockpit-gauge{
+  position:relative;
+  width:clamp(43px,5.5vw,68px);
+  aspect-ratio:1;
+  border:4px solid #9aa3b0;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%,#394253 0 57%,transparent 59%),
+    conic-gradient(from 220deg,#252b38 0 75%,#dbaac0 76% 79%,#252b38 80%);
+  box-shadow:0 3px 7px #090d17,inset 0 0 0 2px #202634;
+}
+
+.cockpit-gauge::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:18%;
+  width:2px;
+  height:34%;
+  transform-origin:50% 100%;
+  transform:rotate(var(--needle-angle,38deg));
+  background:#ffe3a8;
+  box-shadow:0 0 5px #ffe3a8;
+}
+
+.cockpit-gauge::after{
+  content:attr(data-label);
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:12%;
+  color:#e4e9f2;
+  font-size:clamp(7px,.8vw,9px);
+  text-align:center;
+  letter-spacing:.08em;
+}
+
+.cockpit-console{
+  position:relative;
+  z-index:1;
+  width:clamp(92px,13vw,160px);
+  padding:7px 10px;
+  border:1px solid #aeb8c766;
+  border-radius:8px;
+  background:linear-gradient(145deg,#424a5a,#222837);
+  color:#f0d7e1;
+  font-size:9px;
+  letter-spacing:.16em;
+  text-align:center;
+  box-shadow:0 3px 8px #080c15;
+}
+
+.cockpit-console strong{
+  display:block;
+  margin:2px 0 5px;
+  color:#9cf2d0;
+  font-size:clamp(12px,1.4vw,17px);
+  font-variant-numeric:tabular-nums;
+}
+
+.cockpit-switches{
+  display:flex;
+  justify-content:center;
+  gap:7px;
+}
+
+.cockpit-switches i{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#ffcb87;
+  box-shadow:0 0 5px #ffcb87;
+}
+
+.cockpit-rivet{
+  position:absolute;
+  z-index:1;
+  top:64%;
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#c5ccd6;
+  box-shadow:0 1px 3px #090d17;
+}
+
+.cockpit-rivet.left{left:18%}
+.cockpit-rivet.right{right:18%}
+
+@media(max-height:520px){
+  #cockpit{height:27%}
+  .cockpit-dash{height:38%;padding-top:6px}
+  .cockpit-console{padding:4px}
+}
+
+/* 飛機操縱盤 */
+#yokeArea{
+  position:fixed;
+  z-index:7;
+  left:50%;
+  bottom:25px;
+  width:260px;
+  height:190px;
+  transform:translateX(-50%);
+  pointer-events:auto;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  cursor:grab;
+}
+
+#yokeArea:active{cursor:grabbing}
+
+#yoke{
+  width:100%;
+  height:100%;
+  transform-origin:50% 48%;
+  transition:transform .08s linear;
+  filter:drop-shadow(0 5px 5px rgba(0,0,0,.45));
+}
+
+#yoke svg{
+  display:block;
+  width:100%;
+  height:100%;
+  overflow:visible;
+}
+
+.yoke-metal{
+  fill:url(#metalGradient);
+  stroke:#252936;
+  stroke-width:5;
+  stroke-linejoin:round;
+}
+
+.yoke-grip{
+  fill:url(#gripGradient);
+  stroke:#151923;
+  stroke-width:4;
+}
+
+.yoke-detail{
+  fill:none;
+  stroke:rgba(255,255,255,.4);
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.yoke-center{
+  fill:url(#centerGradient);
+  stroke:#171b25;
+  stroke-width:4;
+}
+
+.yoke-logo{
+  fill:#f1c8d6;
+  font-size:13px;
+  font-weight:bold;
+  text-anchor:middle;
+  font-family:Arial,sans-serif;
+}
+
+#yokeHint{
+  position:absolute;
+  left:50%;
+  bottom:-5px;
+  transform:translateX(-50%);
+  color:rgba(255,255,255,.8);
+  font-size:11px;
+  white-space:nowrap;
+  text-shadow:0 2px 4px #222;
+  pointer-events:none;
+}
+
+#flightControls{
+  position:fixed;
+  z-index:6;
+  top:94px;
+  left:16px;
+  width:150px;
+  color:white;
+  background:rgba(40,50,68,.42);
+  padding:7px 10px;
+  border-radius:12px;
+  font-size:10px;
+  text-align:left;
+  line-height:1.7;
+  pointer-events:none;
+}
+
+/* 結果 */
+#resultScreen{display:none}
+#resultScreen.active{display:flex}
+
+.result-icon{font-size:70px;margin-bottom:10px}
+.result-label{color:#a17b8b;margin-top:25px}
+
+.result-value{
+  font-size:clamp(30px,7vw,52px);
+  color:#c96f91;
+  font-weight:bold;
+  margin:15px 0 30px;
+}
+
+#landingButton{
+  display:none;
+  position:fixed;
+  z-index:8;
+  left:50%;
+  bottom:245px;
+  transform:translateX(-50%);
+  pointer-events:auto;
+  white-space:nowrap;
+}
+
+@media(max-width:700px){
+  .map-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+  }
+
+  .map-card{height:105px}
+  .panel{padding:18px}
+
+  .hud-top{
+    top:8px;
+    left:8px;
+    right:8px;
+    gap:5px;
+  }
+
+  .hud-box{
+    padding:7px 8px;
+    font-size:11px;
+  }
+
+  #yokeArea{
+    width:210px;
+    height:155px;
+    bottom:18px;
+  }
+
+  #flightControls{top:102px;left:8px;width:125px;padding:6px 8px}
+
+  #landingButton{bottom:205px}
+
+  #navigation{top:57px;font-size:10px;padding:6px 10px}
+  #eventAlert{top:92px;max-width:92vw;white-space:normal;text-align:center}
+}
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<!-- 開始畫面 -->
+<div id="startScreen" class="screen">
+  <div class="panel start-card">
+    <div class="start-icon">✈️</div>
+    <h1>天空飛行選擇器</h1>
+    <p class="subtitle">
+      選擇一張神祕地圖，駕駛飛機前往天空中的浮島。
+    </p>
+
+    <div class="rule-list">
+      ✦ 內建 30 個隱藏選項<br>
+      ✦ 每次遊戲都會重新隨機排列<br>
+      ✦ 選擇地圖後才會鎖定目的地<br>
+      ✦ 飛行途中不會顯示選項<br>
+      ✦ 成功降落後才會揭曉結果
+    </div>
+
+    <button class="primary" id="startButton">開始遊戲</button>
+  </div>
+</div>
+
+<!-- 地圖選擇 -->
+<div id="mapScreen" class="screen">
+  <div class="panel map-panel">
+    <h1>選擇你的神祕地圖</h1>
+    <p class="subtitle">30 張地圖中，選擇一張作為這次的飛行目的地。</p>
+
+    <div class="map-grid" id="mapGrid"></div>
+
+    <p class="map-hint">地圖不會顯示對應選項，請憑直覺選擇。</p>
+    <button class="primary" id="confirmMap" disabled>確認地圖並起飛</button>
+  </div>
+</div>
+
+<!-- 飛行 HUD -->
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-box">
+      <div>飛行速度</div>
+      <strong id="speedValue">0</strong> km/h
+    </div>
+
+    <div class="hud-box">
+      <div>飛行高度</div>
+      <strong id="altitudeValue">0</strong> m
+    </div>
+
+    <div class="hud-box">
+      <div>目的地距離</div>
+      <strong id="distanceValue">---</strong>
+    </div>
+
+    <div class="hud-box">
+      <div>天氣</div>
+      <strong id="weatherValue">晴朗</strong>
+    </div>
+  </div>
+
+  <div class="crosshair"></div>
+  <div id="navigation">
+    目的地方向 <span id="targetArrow">↑</span>
+    <strong id="bearingValue">0°</strong>
+  </div>
+  <div id="eventAlert" role="status" aria-live="polite">
+    <span class="event-alert-icon" aria-hidden="true">▲</span>
+    <span id="eventAlertText"></span>
+  </div>
+</div>
+
+<div id="cockpit" class="hidden">
+  <span class="cockpit-rivet left"></span>
+  <span class="cockpit-rivet right"></span>
+  <div class="cockpit-dash">
+    <div class="cockpit-stack">
+      <div class="cockpit-gauge" data-label="ALT" data-gauge="altitude"></div>
+      <div class="cockpit-gauge" data-label="BANK" data-gauge="bank"></div>
+    </div>
+    <div class="cockpit-console">
+      FLIGHT SYSTEM
+      <strong id="cockpitReadout">READY</strong>
+      <div class="cockpit-switches"><i></i><i></i><i></i></div>
+    </div>
+    <div class="cockpit-stack">
+      <div class="cockpit-gauge" data-label="SPEED" data-gauge="speed"></div>
+      <div class="cockpit-gauge" data-label="NAV" data-gauge="navigation"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 飛機操縱盤 -->
+<div id="yokeArea" class="hidden">
+  <div id="yoke">
+    <svg viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="metalGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#e5e8ef"/>
+          <stop offset="35%" stop-color="#8c93a3"/>
+          <stop offset="65%" stop-color="#4e5566"/>
+          <stop offset="100%" stop-color="#252b38"/>
+        </linearGradient>
+
+        <linearGradient id="gripGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#555d70"/>
+          <stop offset="50%" stop-color="#252b39"/>
+          <stop offset="100%" stop-color="#111722"/>
+        </linearGradient>
+
+        <linearGradient id="centerGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#737d90"/>
+          <stop offset="100%" stop-color="#303746"/>
+        </linearGradient>
+      </defs>
+
+      <!-- 操縱盤中間連接架 -->
+      <path class="yoke-metal"
+        d="M119 78 L119 145 Q119 158 130 158 Q141 158 141 145 L141 78 Z"/>
+
+      <!-- 左側握把 -->
+      <path class="yoke-grip"
+        d="M119 70
+           C105 56 86 45 65 42
+           L31 38
+           C17 36 9 44 10 57
+           L12 78
+           C13 91 23 97 36 94
+           L76 85
+           C95 82 108 91 119 104
+           Z"/>
+
+      <!-- 右側握把 -->
+      <path class="yoke-grip"
+        d="M141 70
+           C155 56 174 45 195 42
+           L229 38
+           C243 36 251 44 250 57
+           L248 78
+           C247 91 237 97 224 94
+           L184 85
+           C165 82 152 91 141 104
+           Z"/>
+
+      <!-- 握把金屬內側 -->
+      <path class="yoke-detail"
+        d="M23 48 Q55 43 91 70"/>
+      <path class="yoke-detail"
+        d="M237 48 Q205 43 169 70"/>
+
+      <!-- 中央連接盤 -->
+      <path class="yoke-center"
+        d="M105 68 Q130 54 155 68 L153 111 Q130 126 107 111 Z"/>
+
+      <text x="130" y="91" class="yoke-logo">PICKME</text>
+      <path d="M115 101 Q130 107 145 101"
+        fill="none" stroke="#e9bdcd" stroke-width="2"/>
+
+      <!-- 中央軸心 -->
+      <circle cx="130" cy="145" r="13"
+        fill="#222938" stroke="#aeb5c3" stroke-width="4"/>
+      <circle cx="130" cy="145" r="5" fill="#d6dbe4"/>
+    </svg>
+  </div>
+  <div id="yokeHint">左右拖曳轉向，放開後機身會自動回正</div>
+</div>
+
+<div id="flightControls" class="hidden">
+  W / S：高低　A / D：轉向<br>
+  ↑ / ↓：油門　L：降落
+</div>
+
+<button id="landingButton" class="primary">嘗試降落</button>
+
+<!-- 結果 -->
+<div id="resultScreen" class="screen">
+  <div class="panel start-card">
+    <div class="result-icon">🏝️</div>
+    <h1>成功抵達目的地！</h1>
+    <p class="result-label">這次抽中的選項是</p>
+    <div class="result-value" id="resultValue">選項一</div>
+    <p class="subtitle">飛行任務完成。</p>
+    <button class="primary" id="restartButton">重新開始</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+
+/* =========================
+   基本設定
+========================= */
+
+const game = document.getElementById("game");
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x91c9ec);
+scene.fog = new THREE.Fog(0x91c9ec,250,1500);
+
+const camera = new THREE.PerspectiveCamera(
+  72,
+  window.innerWidth/window.innerHeight,
+  .1,
+  3000
+);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+game.appendChild(renderer.domElement);
+
+const ambient = new THREE.HemisphereLight(0xffffff,0x7892a4,2);
+scene.add(ambient);
+
+const sun = new THREE.DirectionalLight(0xffffff,2.2);
+sun.position.set(-200,300,150);
+sun.castShadow = true;
+scene.add(sun);
+
+/* =========================
+   遊戲資料
+========================= */
+
+const chineseNumbers = [
+  "一","二","三","四","五","六","七","八","九","十",
+  "十一","十二","十三","十四","十五","十六","十七","十八","十九","二十",
+  "二十一","二十二","二十三","二十四","二十五","二十六","二十七","二十八","二十九","三十"
+];
+
+const options = chineseNumbers.map(n=>"選項"+n);
+
+let maps = [];
+let selectedMap = null;
+let lockedOption = null;
+
+let gameStarted = false;
+let landed = false;
+
+let speed = 90;
+let altitude = 60;
+let yaw = 0;
+let pitch = 0;
+let bank = 0;
+let targetSpeed = 90;
+
+let position = new THREE.Vector3(0,60,0);
+let velocity = new THREE.Vector3();
+
+let targetIsland = null;
+let targetPosition = new THREE.Vector3(0,20,-600);
+
+const keys = {};
+
+const DESTINATION_REVEAL_DISTANCE=1120;
+let destinationRevealed=false;
+let weatherTimer = 0;
+let weatherIndex = 0;
+let weatherWarningShown = false;
+let turbulence = 0;
+let rainParticles = null;
+let activeSituation = null;
+let activeSituationTime = 0;
+let pendingSituation = null;
+let situationTimer = 14;
+let situationWarningShown = false;
+let alertOwner = null;
+let alertTimeout = null;
+
+/* 操縱盤控制變數 */
+let yokeDragging = false;
+let yokeTurn = 0;
+let yokePointerStart = 0;
+let yokeStartTurn = 0;
+
+const yokeArea = document.getElementById("yokeArea");
+const yokeElement = document.getElementById("yoke");
+
+const weatherTypes = [
+  {name:"晴朗",fog:0x91c9ec,intensity:1},
+  {name:"薄霧",fog:0xc2d4df,intensity:.7},
+  {name:"強風",fog:0x9ab7cc,intensity:.9},
+  {name:"夕陽",fog:0xf3b69d,intensity:.9},
+  {name:"雷雨",fog:0x58677e,intensity:.5}
+];
+
+/* =========================
+   隨機工具
+========================= */
+
+function shuffle(array){
+  const result = [...array];
+
+  for(let i=result.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [result[i],result[j]]=[result[j],result[i]];
+  }
+
+  return result;
+}
+
+function random(min,max){
+  return min+Math.random()*(max-min);
+}
+
+/* =========================
+   飛機操縱盤互動
+========================= */
+
+function updateYokeVisual(){
+  const angle = yokeTurn*32;
+  yokeElement.style.transform=`rotate(${angle}deg)`;
+}
+
+yokeArea.addEventListener("pointerdown",e=>{
+  if(!gameStarted || landed) return;
+
+  yokeDragging = true;
+  yokePointerStart = e.clientX;
+  yokeStartTurn = yokeTurn;
+
+  yokeArea.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+yokeArea.addEventListener("pointermove",e=>{
+  if(!yokeDragging) return;
+
+  const deltaX = e.clientX-yokePointerStart;
+
+  // 左右拖曳距離轉換成轉向幅度
+  yokeTurn = THREE.MathUtils.clamp(
+    yokeStartTurn+deltaX/85,
+    -1,
+    1
+  );
+
+  updateYokeVisual();
+  e.preventDefault();
+});
+
+function releaseYoke(){
+  yokeDragging = false;
+  yokeTurn = 0;
+  updateYokeVisual();
+}
+
+yokeArea.addEventListener("pointerup",releaseYoke);
+yokeArea.addEventListener("pointercancel",releaseYoke);
+yokeArea.addEventListener("lostpointercapture",releaseYoke);
+
+/* =========================
+   地圖卡片
+========================= */
+
+const mapColors = [
+  "#e9b9c6","#c5b8df","#a9cbd8","#d9c49b","#c5d8b2",
+  "#e9c9a5","#d9a9a9","#a8c4b8","#c8b2a2","#b8bdd9"
+];
+
+const sealColors = [
+  "#c86e78","#9d81bb","#7da8b5","#d2a34f","#7eaa87",
+  "#d18d6c","#b76e83","#8e9fbd","#a88d75","#bd91ae"
+];
+
+function createMapSVG(seed){
+  const paths = [
+    `<path d="M8 60 Q30 8 52 40 T92 30" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M10 20 Q40 70 90 15" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M15 10 L40 30 L20 60 L70 80 L90 40" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M10 45 Q30 10 50 45 Q70 80 90 35" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M15 15 L85 15 L85 85 L15 85 Z" fill="none" stroke="#987b5e" stroke-width="1.5"/>`,
+    `<circle cx="50" cy="50" r="28" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M10 75 L35 20 L55 65 L80 10" fill="none" stroke="#987b5e" stroke-width="2"/>`,
+    `<path d="M15 20 Q50 0 85 20 Q50 100 15 20" fill="none" stroke="#987b5e" stroke-width="2"/>`
+  ];
+
+  const decorations = [
+    `<circle cx="22" cy="25" r="5" fill="#bd9872"/>`,
+    `<path d="M70 20 l8 12 -8 12 -8 -12z" fill="#bd9872"/>`,
+    `<path d="M25 70 l8 -14 8 14z" fill="#bd9872"/>`,
+    `<circle cx="75" cy="68" r="8" fill="none" stroke="#bd9872" stroke-width="2"/>`,
+    `<path d="M50 15 l5 10 -5 10 -5 -10z" fill="#bd9872"/>`
+  ];
+
+  return `
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      ${paths[seed%paths.length]}
+      ${decorations[(seed*3)%decorations.length]}
+      <circle cx="${20+(seed*13)%65}" cy="${20+(seed*17)%65}"
+        r="3" fill="#b98c67"/>
+    </svg>
+  `;
+}
+
+function renderMaps(){
+  const grid=document.getElementById("mapGrid");
+  grid.innerHTML="";
+
+  maps.forEach((map,index)=>{
+    const card=document.createElement("div");
+    card.className="map-card";
+
+    const color=mapColors[index%mapColors.length];
+    const seal=sealColors[(index*3+2)%sealColors.length];
+    const rotation=random(-4,4);
+
+    card.style.background=color;
+
+    card.innerHTML=`
+      <div class="parchment" style="--rotation:${rotation}deg">
+        <div class="map-art">${createMapSVG(index)}</div>
+        <div class="map-ribbon" style="background:${seal}"></div>
+        <div class="map-seal" style="background:${seal}"></div>
+      </div>
+    `;
+
+    card.addEventListener("click",()=>{
+      document.querySelectorAll(".map-card").forEach(el=>{
+        el.classList.remove("selected");
+      });
+
+      card.classList.add("selected");
+      selectedMap=index;
+      document.getElementById("confirmMap").disabled=false;
+    });
+
+    grid.appendChild(card);
+  });
+}
+
+/* =========================
+   天空裝飾
+========================= */
+
+function createCloud(x,y,z,scale=1){
+  const group=new THREE.Group();
+
+  const material=new THREE.MeshStandardMaterial({
+    color:0xffffff,
+    roughness:1,
+    transparent:true,
+    opacity:.85
+  });
+
+  for(let i=0;i<6;i++){
+    const mesh=new THREE.Mesh(
+      new THREE.SphereGeometry(random(8,15),12,10),
+      material
+    );
+
+    mesh.position.set(
+      random(-12,12),
+      random(-4,5),
+      random(-7,7)
+    );
+
+    mesh.scale.set(1.4,.65,1);
+    group.add(mesh);
+  }
+
+  group.position.set(x,y,z);
+  group.scale.setScalar(scale);
+  scene.add(group);
+
+  return group;
+}
+
+const clouds=[];
+
+for(let i=0;i<90;i++){
+  clouds.push(
+    createCloud(
+      random(-900,900),
+      random(15,260),
+      random(-1500,300),
+      random(.5,1.5)
+    )
+  );
+}
+
+/* =========================
+   浮島建構
+========================= */
+
+function createIsland(x,y,z,size,isTarget=false){
+  const group=new THREE.Group();
+
+  const topMaterial=new THREE.MeshStandardMaterial({
+    color:isTarget?0x8dc5a1:0x83b99b,
+    roughness:1
+  });
+
+  const rockMaterial=new THREE.MeshStandardMaterial({
+    color:0x8e9caa,
+    roughness:1
+  });
+
+  const top=new THREE.Mesh(
+    new THREE.CylinderGeometry(size*.75,size,10,9),
+    topMaterial
+  );
+
+  top.position.y=0;
+  top.castShadow=true;
+  top.receiveShadow=true;
+  group.add(top);
+
+  const rock=new THREE.Mesh(
+    new THREE.ConeGeometry(size*.8,size*1.5,8),
+    rockMaterial
+  );
+
+  rock.position.y=-size*.8;
+  rock.rotation.y=.3;
+  rock.castShadow=true;
+  group.add(rock);
+
+  for(let i=0;i<12;i++){
+    const hill=new THREE.Mesh(
+      new THREE.SphereGeometry(random(3,9),8,6),
+      topMaterial
+    );
+
+    hill.scale.y=.45;
+    hill.position.set(
+      random(-size*.55,size*.55),
+      4,
+      random(-size*.55,size*.55)
+    );
+
+    group.add(hill);
+  }
+
+  const trunkMat=new THREE.MeshStandardMaterial({color:0x89664f});
+  const leafMat=new THREE.MeshStandardMaterial({color:0x5e9b78});
+
+  for(let i=0;i<(isTarget?7:3);i++){
+    const tx=random(-size*.45,size*.45);
+    const tz=random(-size*.45,size*.45);
+
+    const trunk=new THREE.Mesh(
+      new THREE.CylinderGeometry(.7,1,8,6),
+      trunkMat
+    );
+
+    trunk.position.set(tx,8,tz);
+    group.add(trunk);
+
+    const leaves=new THREE.Mesh(
+      new THREE.ConeGeometry(4,12,7),
+      leafMat
+    );
+
+    leaves.position.set(tx,17,tz);
+    group.add(leaves);
+  }
+
+  if(isTarget){
+    const runway=new THREE.Mesh(
+      new THREE.BoxGeometry(size*1.1,.5,size*1.4),
+      new THREE.MeshStandardMaterial({color:0xeee4d7})
+    );
+
+    runway.position.set(0,6,0);
+    group.add(runway);
+
+    const stripeMat=new THREE.MeshBasicMaterial({color:0xd18aa1});
+
+    for(let i=0;i<5;i++){
+      const stripe=new THREE.Mesh(
+        new THREE.BoxGeometry(size*.65,.7,1.2),
+        stripeMat
+      );
+
+      stripe.position.set(0,6.4,-size*.5+i*size*.25);
+      group.add(stripe);
+    }
+
+    const beacon=new THREE.PointLight(0xffd8a5,3,180);
+    beacon.position.set(0,35,0);
+    group.add(beacon);
+
+    const beam=new THREE.Mesh(
+      new THREE.CylinderGeometry(2,13,130,16,1,true),
+      new THREE.MeshBasicMaterial({
+        color:0xffd98f,
+        transparent:true,
+        opacity:.2,
+        side:THREE.DoubleSide,
+        depthWrite:false
+      })
+    );
+    beam.position.y=72;
+    group.add(beam);
+
+    const beaconRing=new THREE.Mesh(
+      new THREE.TorusGeometry(24,1.6,10,48),
+      new THREE.MeshBasicMaterial({
+        color:0xffe6b0,
+        transparent:true,
+        opacity:.9
+      })
+    );
+    beaconRing.rotation.x=Math.PI/2;
+    beaconRing.position.y=38;
+    group.add(beaconRing);
+
+    const beaconBall=new THREE.Mesh(
+      new THREE.SphereGeometry(3,16,12),
+      new THREE.MeshBasicMaterial({color:0xffe2a7})
+    );
+
+    beaconBall.position.set(0,35,0);
+    group.add(beaconBall);
+  }
+
+  group.position.set(x,y,z);
+  scene.add(group);
+
+  return group;
+}
+
+function createWorldIslands(){
+  for(let i=0;i<24;i++){
+    const z=random(-1500,-150);
+    const x=random(-700,700);
+    const y=random(0,150);
+
+    createIsland(x,y,z,random(15,40)    );
+  }
+
+  for(let i=0;i<68;i++){
+    const z=-70-i*70+random(-22,22);
+    const x=random(-320,320);
+    const y=random(5,220);
+    createIsland(x,y,z,random(14,32));
+  }
+}
+
+/* =========================
+   目的地
+========================= */
+
+function createDestination(){
+  if(targetIsland){
+    scene.remove(targetIsland);
+  }
+
+  destinationRevealed=false;
+  targetPosition.set(
+    random(-100,100),
+    18,
+    -650
+  );
+
+  targetIsland=createIsland(
+    targetPosition.x,
+    targetPosition.y,
+    targetPosition.z,
+    65,
+    true
+  );
+  targetIsland.visible=false;
+}
+
+/* =========================
+   雨滴
+========================= */
+
+function createRain(){
+  const count=900;
+  const positions=new Float32Array(count*3);
+
+  for(let i=0;i<count;i++){
+    positions[i*3]=random(-300,300);
+    positions[i*3+1]=random(-100,300);
+    positions[i*3+2]=random(-400,100);
+  }
+
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(positions,3)
+  );
+
+  const material=new THREE.PointsMaterial({
+    color:0xe4f3ff,
+    size:1.8,
+    transparent:true,
+    opacity:.65
+  });
+
+  rainParticles=new THREE.Points(geometry,material);
+  rainParticles.visible=false;
+  scene.add(rainParticles);
+}
+
+/* =========================
+   遊戲初始化
+========================= */
+
+function resetFlight(){
+  position.set(0,60,0);
+  velocity.set(0,0,0);
+
+  yaw=0;
+  pitch=0;
+  bank=0;
+  speed=90;
+  targetSpeed=90;
+  altitude=60;
+
+  landed=false;
+  turbulence=0;
+
+  yokeTurn=0;
+  yokeDragging=false;
+  updateYokeVisual();
+
+  camera.position.copy(position);
+  camera.rotation.set(0,0,0);
+
+  weatherTimer=0;
+  weatherIndex=0;
+  weatherWarningShown=false;
+  activeSituation=null;
+  activeSituationTime=0;
+  pendingSituation=null;
+  situationTimer=random(12,18);
+  situationWarningShown=false;
+  hideEventAlert();
+  applyWeather(0);
+}
+
+function startGame(){
+  maps=shuffle(options).map((option,index)=>({
+    id:index,
+    option
+  }));
+
+  selectedMap=null;
+  lockedOption=null;
+
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("mapScreen").classList.add("active");
+
+  document.getElementById("confirmMap").disabled=true;
+
+  renderMaps();
+}
+
+function beginFlight(){
+  if(selectedMap===null)return;
+
+  lockedOption=maps[selectedMap].option;
+
+  document.getElementById("mapScreen").classList.remove("active");
+
+  document.getElementById("hud").classList.add("active");
+  document.getElementById("cockpit").classList.remove("hidden");
+  document.getElementById("flightControls").classList.remove("hidden");
+  document.getElementById("yokeArea").classList.remove("hidden");
+
+  resetFlight();
+  createDestination();
+
+  gameStarted=true;
+
+}
+
+/* =========================
+   天氣
+========================= */
+
+function showEventAlert(message,type="warning",owner=""){
+  const alert=document.getElementById("eventAlert");
+  alertOwner=owner;
+  document.getElementById("eventAlertText").textContent=message;
+  alert.classList.toggle("info",type==="info");
+  alert.querySelector(".event-alert-icon").style.display=
+    type==="warning"?"":"none";
+  alert.classList.add("visible");
+  clearTimeout(alertTimeout);
+  alertTimeout=null;
+}
+
+function hideEventAlert(owner){
+  if(owner&&alertOwner!==owner)return;
+  clearTimeout(alertTimeout);
+  alertTimeout=null;
+  alertOwner=null;
+  document.getElementById("eventAlert").classList.remove("visible");
+}
+
+function applyWeather(index){
+  const weather=weatherTypes[index];
+
+  scene.fog.color.setHex(weather.fog);
+  scene.background.setHex(weather.fog);
+  scene.fog.near=index===1?40:250;
+  scene.fog.far=index===1?380:1500;
+
+  document.getElementById("weatherValue").textContent=weather.name;
+
+  if(rainParticles){
+    rainParticles.visible=index===4;
+  }
+
+  turbulence=index===2||index===4?1:0;
+}
+
+function updateWeather(delta){
+  weatherTimer+=delta;
+
+  if(weatherTimer>=20&&!weatherWarningShown){
+    const upcomingWeather=(weatherIndex+1)%weatherTypes.length;
+    showEventAlert(
+      `即將轉為${weatherTypes[upcomingWeather].name}`,
+      "warning",
+      "weather"
+    );
+    weatherWarningShown=true;
+  }
+
+  if(weatherTimer>=22){
+    weatherTimer-=22;
+    weatherIndex=(weatherIndex+1)%weatherTypes.length;
+    applyWeather(weatherIndex);
+    weatherWarningShown=false;
+    hideEventAlert("weather");
+  }
+}
+
+const flightSituations=[
+  {name:"側風突襲",type:"crosswind",duration:7},
+  {name:"下沉氣流",type:"downdraft",duration:6},
+  {name:"強烈亂流",type:"turbulence",duration:7},
+  {name:"上升氣流",type:"updraft",duration:6},
+  {name:"陣風推擠",type:"gust",duration:6}
+];
+
+function updateSituation(delta){
+  if(activeSituation){
+    activeSituationTime-=delta;
+    if(activeSituationTime<=0){
+      activeSituation=null;
+      situationTimer=random(12,20);
+    }
+    return;
+  }
+
+  situationTimer-=delta;
+  if(situationTimer<=2&&weatherWarningShown){
+    situationTimer+=delta;
+    return;
+  }
+
+  if(situationTimer<=2&&!situationWarningShown){
+    pendingSituation=flightSituations[
+      Math.floor(Math.random()*flightSituations.length)
+    ];
+    showEventAlert(
+      `注意！即將遭遇${pendingSituation.name}`,
+      "warning",
+      "situation"
+    );
+    situationWarningShown=true;
+  }
+
+  if(situationTimer<=0){
+    const incident=pendingSituation;
+    activeSituation={
+      ...incident,
+      direction:Math.random()<.5?-1:1
+    };
+    activeSituationTime=incident.duration;
+    pendingSituation=null;
+    situationWarningShown=false;
+    hideEventAlert("situation");
+  }
+}
+
+/* =========================
+   飛行控制
+========================= */
+
+window.addEventListener("keydown",e=>{
+  keys[e.key.toLowerCase()]=true;
+
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)){
+    e.preventDefault();
+  }
+
+  if(e.key.toLowerCase()==="l"){
+    tryLanding();
+  }
+});
+
+window.addEventListener("keyup",e=>{
+  keys[e.key.toLowerCase()]=false;
+});
+
+function updateFlight(delta){
+  if(!gameStarted||landed)return;
+
+  let steering=0;
+  if(keys["a"]||keys["arrowleft"])steering-=1;
+  if(keys["d"]||keys["arrowright"])steering+=1;
+  steering=THREE.MathUtils.clamp(steering+yokeTurn,-1,1);
+
+  bank=THREE.MathUtils.damp(bank,steering*.62,3.2,delta);
+  yaw+=Math.sin(bank)*1.15*(speed/90)*delta;
+
+  let pitchInput=0;
+  if(keys["w"])pitchInput+=1;
+  if(keys["s"])pitchInput-=1;
+  pitch=THREE.MathUtils.damp(
+    pitch,
+    pitchInput*.38,
+    2.8,
+    delta
+  );
+
+  let throttleInput=0;
+  if(keys["arrowup"])throttleInput+=1;
+  if(keys["arrowdown"])throttleInput-=1;
+  targetSpeed=THREE.MathUtils.clamp(
+    targetSpeed+throttleInput*55*delta,
+    55,
+    180
+  );
+  speed=THREE.MathUtils.damp(speed,targetSpeed,1.8,delta);
+
+  const direction=new THREE.Vector3(
+    Math.sin(yaw)*Math.cos(pitch),
+    Math.sin(pitch),
+    -Math.cos(yaw)*Math.cos(pitch)
+  ).normalize();
+
+  position.addScaledVector(direction,speed*delta*.45);
+
+  if(activeSituation){
+    if(activeSituation.type==="crosswind"){
+      position.x+=activeSituation.direction*13*delta;
+    }else if(activeSituation.type==="downdraft"){
+      position.y-=10*delta;
+    }else if(activeSituation.type==="updraft"){
+      position.y+=9*delta;
+    }else if(activeSituation.type==="gust"){
+      position.x+=Math.sin(performance.now()*.004)*14*delta;
+    }
+  }
+
+  if(turbulence){
+    position.x+=Math.sin(performance.now()*.006)*delta*1.5;
+    position.y+=Math.sin(performance.now()*.008)*delta*1.2;
+  }
+
+  position.y=THREE.MathUtils.clamp(position.y,8,300);
+  altitude=position.y;
+
+  const weatherShake=weatherIndex===2?1:weatherIndex===4?.3:0;
+  const situationShake=activeSituation&&activeSituation.type==="turbulence"
+    ?1.8
+    :(activeSituation&&activeSituation.type==="gust"?0.9:0);
+  const windShake=Math.max(weatherShake,situationShake);
+  const shakeTime=performance.now()*.001;
+  camera.position.set(
+    position.x+Math.sin(shakeTime*17)*2.1*windShake,
+    position.y+Math.sin(shakeTime*21)*1.35*windShake,
+    position.z+Math.cos(shakeTime*15)*.8*windShake
+  );
+  camera.rotation.order="YXZ";
+  camera.rotation.y=yaw+Math.sin(shakeTime*13)*.03*windShake;
+  camera.rotation.x=-pitch+Math.sin(shakeTime*19)*.035*windShake;
+
+  // 飛機轉彎時的視角傾斜
+  camera.rotation.z=bank*.72+Math.sin(shakeTime*23)*.045*windShake;
+
+  if(rainParticles&&rainParticles.visible){
+    rainParticles.position.copy(position);
+
+    const attr=rainParticles.geometry.attributes.position;
+
+    for(let i=0;i<attr.count;i++){
+      let y=attr.getY(i);
+      y-=120*delta;
+
+      if(y< -100)y=300;
+
+      attr.setY(i,y);
+    }
+
+    attr.needsUpdate=true;
+  }
+
+  clouds.forEach(cloud=>{
+    cloud.position.x+=Math.sin(performance.now()*.0001)*delta*.3;
+  });
+
+  const distance=position.distanceTo(targetPosition);
+  if(!destinationRevealed&&distance<=DESTINATION_REVEAL_DISTANCE){
+    destinationRevealed=true;
+    targetIsland.visible=true;
+  }
+  const bearing=Math.atan2(
+    targetPosition.x-position.x,
+    -(targetPosition.z-position.z)
+  );
+  const relativeBearing=Math.atan2(
+    Math.sin(bearing-yaw),
+    Math.cos(bearing-yaw)
+  );
+  const bearingDegrees=Math.abs(THREE.MathUtils.radToDeg(relativeBearing));
+  document.getElementById("targetArrow").style.transform=
+    `rotate(${THREE.MathUtils.radToDeg(relativeBearing)}deg)`;
+  document.getElementById("bearingValue").textContent=
+    `${relativeBearing>=0?"+":"−"}${Math.round(bearingDegrees)}°`;
+  const gaugeAngles={
+    altitude:-130+(altitude/300)*260,
+    bank:bank*145,
+    speed:-110+((speed-55)/125)*220,
+    navigation:THREE.MathUtils.radToDeg(relativeBearing)*.65
+  };
+  document.querySelectorAll(".cockpit-gauge").forEach(gauge=>{
+    gauge.style.setProperty(
+      "--needle-angle",
+      `${gaugeAngles[gauge.dataset.gauge]}deg`
+    );
+  });
+  document.getElementById("cockpitReadout").textContent=
+    `${Math.round(speed*3.6)} KM/H · ${Math.round(altitude*10)} M`;
+
+  document.getElementById("speedValue").textContent=
+    Math.round(speed*3.6);
+
+  document.getElementById("altitudeValue").textContent=
+    Math.round(altitude*10);
+
+  document.getElementById("distanceValue").textContent=
+    Math.round(distance);
+
+  const landingButton=document.getElementById("landingButton");
+
+  if(distance<120){
+    landingButton.style.display="block";
+  }else if(bearingDegrees>100){
+    landingButton.style.display="none";
+  }else{
+    landingButton.style.display="none";
+  }
+}
+
+/* =========================
+   降落判定
+========================= */
+
+function tryLanding(){
+  if(!gameStarted||landed)return;
+
+  const horizontalDistance=Math.sqrt(
+    Math.pow(position.x-targetPosition.x,2)+
+    Math.pow(position.z-targetPosition.z,2)
+  );
+
+  const heightDifference=Math.abs(
+    position.y-(targetPosition.y+12)
+  );
+
+  if(horizontalDistance<90&&heightDifference<32){
+    landed=true;
+    gameStarted=false;
+
+    position.set(
+      targetPosition.x,
+      targetPosition.y+18,
+      targetPosition.z+15
+    );
+
+    document.getElementById("landingButton").style.display="none";
+    document.getElementById("yokeArea").classList.add("hidden");
+
+    setTimeout(()=>{
+      showResult();
+    },800);
+
+  }else{
+    let message="尚未到達適合降落的位置。";
+
+    if(horizontalDistance>=90){
+      message="請繼續朝向浮島飛行，靠近降落跑道。";
+    }else if(heightDifference>=32){
+      message=position.y>targetPosition.y+44
+        ?"高度太高，請按 S 下降。"
+        :"高度太低，請稍微按 W 爬升。";
+    }
+
+    showEventAlert(message,"info","landing");
+    alertTimeout=setTimeout(()=>hideEventAlert("landing"),2200);
+  }
+}
+
+/* =========================
+   揭曉結果
+========================= */
+
+function showResult(){
+  document.getElementById("hud").classList.remove("active");
+  document.getElementById("cockpit").classList.add("hidden");
+  document.getElementById("flightControls").classList.add("hidden");
+  document.getElementById("yokeArea").classList.add("hidden");
+
+  document.getElementById("resultValue").textContent=lockedOption;
+  document.getElementById("resultScreen").classList.add("active");
+}
+
+/* =========================
+   事件
+========================= */
+
+document.getElementById("startButton").addEventListener("click",startGame);
+
+document.getElementById("confirmMap").addEventListener("click",beginFlight);
+
+document.getElementById("landingButton").addEventListener("click",tryLanding);
+
+document.getElementById("restartButton").addEventListener("click",()=>{
+  document.getElementById("resultScreen").classList.remove("active");
+
+  gameStarted=false;
+  landed=false;
+
+  startGame();
+});
+
+/* =========================
+   場景建立
+========================= */
+
+createWorldIslands();
+createRain();
+
+/* =========================
+   動畫
+========================= */
+
+const clock=new THREE.Clock();
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  const delta=Math.min(clock.getDelta(),.04);
+
+  if(gameStarted){
+    updateWeather(delta);
+    updateSituation(delta);
+    updateFlight(delta);
+  }
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+/* =========================
+   畫面尺寸
+========================= */
+
+window.addEventListener("resize",()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+
+</body>
+</html>

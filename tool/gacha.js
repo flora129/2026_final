@@ -68,7 +68,6 @@ let tutorialActive = false;
 let tutorialStep = 0;
 let tutorialResultClosed = false;
 let tutorialFirstDrawCompleted = false;
-const tutorialLauncher = document.getElementById('tutorialLauncher');
 
 const colors = [
     '#F4A9C2',
@@ -831,10 +830,3 @@ function closeModal() {
 }
 
 document.getElementById('resultOverlay').addEventListener('click', closeModal);
-document.getElementById('tutorialButton').addEventListener('click', nextTutorial);
-tutorialLauncher.addEventListener('click', () => {
-    tutorialActive = true;
-    tutorialResultClosed = false;
-    tutorialFirstDrawCompleted = false;
-    showTutorial(0);
-});

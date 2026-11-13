@@ -225,3 +225,220 @@
 @media (prefers-reduced-motion: reduce) {
   .food-flip-inner, .attraction-photo img { transition: none; }
 }
+/* ===== PickMe 地區篩選器｜新版 ===== */
+
+.location-filter {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto 64px;
+  padding: 34px clamp(20px, 4vw, 48px) 30px;
+  overflow: hidden;
+
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255,255,255,.9), transparent 45%),
+    linear-gradient(135deg, #fffaf0, #f8ead2);
+
+  border: 1px solid rgba(139, 91, 59, .13);
+  border-radius: 30px;
+
+  box-shadow:
+    0 14px 35px rgba(105, 71, 43, .08),
+    0 3px 8px rgba(105, 71, 43, .04);
+}
+
+/* 上方裝飾線 */
+.location-filter::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 90px;
+  height: 4px;
+  transform: translateX(-50%);
+  background: #c8794e;
+  border-radius: 0 0 8px 8px;
+}
+
+.location-filter-title {
+  margin: 0 0 25px;
+  color: #674638;
+  text-align: center;
+  font-size: clamp(21px, 3vw, 27px);
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+.location-filter-title::after {
+  content: "CHOOSE YOUR DESTINATION";
+  display: block;
+  margin-top: 7px;
+  color: #bd9275;
+  font-family: 'Caveat', cursive;
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: .12em;
+}
+
+/* 地區按鈕 */
+.region-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.region-btn {
+  position: relative;
+  min-height: 54px;
+  padding: 12px 8px;
+
+  color: #80604e;
+  background: rgba(255, 255, 255, .65);
+
+  border: 1px solid rgba(157, 112, 78, .2);
+  border-radius: 15px;
+
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: .04em;
+
+  cursor: pointer;
+  transition:
+    background .25s ease,
+    color .25s ease,
+    border-color .25s ease,
+    transform .25s ease,
+    box-shadow .25s ease;
+}
+
+.region-btn:hover {
+  color: #a95f3c;
+  background: #fff8ec;
+  border-color: #d7a17d;
+  transform: translateY(-2px);
+}
+
+.region-btn.active {
+  color: #fffaf3;
+  background: linear-gradient(135deg, #cf8962, #b96e49);
+  border-color: transparent;
+  box-shadow: 0 5px 12px rgba(166, 91, 56, .2);
+}
+
+.region-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,.75);
+  border-radius: 10px;
+}
+
+/* 縣市選擇區 */
+.city-select-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 27px;
+  padding-top: 23px;
+  border-top: 1px solid rgba(157, 112, 78, .16);
+}
+
+.city-select-wrap label {
+  color: #765440;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+.city-select {
+  width: min(340px, 100%);
+  min-height: 48px;
+  padding: 0 42px 0 17px;
+
+  color: #674638;
+  background-color: #fffdf8;
+
+  border: 1px solid #dfc8ad;
+  border-radius: 13px;
+
+  font-family: inherit;
+  font-size: 15px;
+  cursor: pointer;
+
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+
+.city-select:hover {
+  border-color: #c98a65;
+}
+
+.city-select:focus {
+  border-color: #c8794e;
+  box-shadow: 0 0 0 4px rgba(200, 121, 78, .12);
+}
+
+.city-select:disabled {
+  color: #b6a496;
+  background: #f3eee7;
+  cursor: not-allowed;
+}
+
+/* 提示文字 */
+.filter-hint {
+  margin: 16px 0 0;
+  color: #a58a76;
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: .03em;
+  line-height: 1.6;
+}
+
+/* 手機版 */
+@media (max-width: 620px) {
+  .location-filter {
+    margin: 0 auto 42px;
+    padding: 29px 17px 23px;
+    border-radius: 24px;
+  }
+
+  .location-filter-title {
+    margin-bottom: 21px;
+  }
+
+  .region-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+  }
+
+  .region-btn {
+    min-height: 46px;
+    padding: 9px 5px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
+
+  .city-select-wrap {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 19px;
+  }
+
+  .city-select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .region-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

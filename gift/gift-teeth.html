@@ -1,0 +1,777 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜貓咪咬咬決定器</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --pink: #f3b5c9;
+    --deep: #d77f9e;
+    --light: #ffe8ef;
+    --cream: #fff9f5;
+    --dark: #654b58;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Noto Sans TC", sans-serif;
+    color: var(--dark);
+    background: #f9dce6;
+}
+
+.game {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 22px 12px 30px;
+    background: radial-gradient(circle, #fff7fa, #f8dce6);
+    overflow: hidden;
+}
+
+.title {
+    font-size: clamp(25px, 4vw, 36px);
+    font-weight: 900;
+    color: #bd718e;
+    letter-spacing: 3px;
+}
+
+.subtitle {
+    font-size: 13px;
+    color: #b58a9b;
+    margin: 5px 0 18px;
+}
+
+/* 選項 */
+
+.current-box {
+    width: min(340px, 88vw);
+    min-height: 88px;
+    padding: 12px 20px;
+    border-radius: 19px;
+    background: white;
+    border: 2px solid #f2bfd0;
+    box-shadow: 0 5px 0 #e9b2c5, 0 8px 18px #d99db522;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.current-label {
+    color: #c18a9f;
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.current-option {
+    color: #ce7394;
+    font-size: 35px;
+    font-weight: 900;
+    margin-top: 5px;
+}
+
+/* 貓咪 */
+
+.cat-container {
+    width: min(660px, 98vw);
+    margin: 0 auto;
+}
+
+.cat-svg {
+    display: block;
+    width: 100%;
+    overflow: visible;
+}
+
+.cat-body {
+    fill: #fffdfd;
+    stroke: #eadde2;
+    stroke-width: 3;
+}
+
+.ear-inner {
+    fill: #f4b9ca;
+}
+
+.eye {
+    fill: #59434b;
+}
+
+.eye-light {
+    fill: white;
+}
+
+.nose {
+    fill: #e995ae;
+}
+
+.cheek {
+    fill: #f8cbd7;
+    opacity: .8;
+}
+
+.whisker {
+    stroke: #c8aab5;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    fill: none;
+}
+
+/* 張開的嘴巴 */
+
+.mouth {
+    fill: #714b59;
+    stroke: #684451;
+    stroke-width: 3;
+}
+
+.mouth-content {
+    transform-origin: 300px 290px;
+    transform: scale(1.12);
+    opacity: 1;
+    transition: opacity .18s ease;
+}
+
+/* 咬下去：隱藏整個張嘴區域 */
+
+.cat-container.bite .mouth-content {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* 閉嘴時保留自然的 Y 字嘴型 */
+
+.mouth-line {
+    stroke: #a77c8b;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke .2s ease;
+}
+
+.cat-container.bite .mouth-line {
+    stroke: #98717f;
+}
+
+/* 牙齒 */
+
+.tooth {
+    fill: #fff;
+    stroke: #d9bdc8;
+    stroke-width: 2;
+    cursor: pointer;
+    transition: fill .18s, opacity .18s;
+}
+
+.tooth-group {
+    cursor: pointer;
+    outline: none;
+}
+
+.tooth-group:hover:not(.used):not(.locked) .tooth {
+    fill: #ffe3ec;
+    stroke: #d77f9e;
+    stroke-width: 3;
+}
+
+.tooth-group:focus-visible .tooth {
+    stroke: #c75c82;
+    stroke-width: 4;
+}
+
+.tooth.used {
+    fill: #e6d8df;
+    stroke: #cbb9c2;
+    opacity: .55;
+    cursor: default;
+}
+
+.tooth.danger {
+    fill: #f4a5bd;
+    stroke: #ce6488;
+}
+
+/* 提示 */
+
+.hint {
+    font-size: 14px;
+    color: #b58b9c;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* 結果視窗 */
+
+.result-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #59404b66;
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+}
+
+.result-overlay.show {
+    display: flex;
+    animation: fadeIn .25s;
+}
+
+.result-card {
+    width: min(340px, 90vw);
+    padding: 32px 25px;
+    border-radius: 28px;
+    background: #fff9f8;
+    border: 4px solid white;
+    outline: 2px solid #edbfd0;
+    box-shadow: 0 12px 35px #68445135;
+    text-align: center;
+    animation: pop .35s;
+    cursor: pointer;
+}
+
+.result-cat {
+    width: 75px;
+    margin: 0 auto 12px;
+}
+
+.result-title {
+    font-size: 23px;
+    color: #ca7794;
+    font-weight: 900;
+}
+
+.result-description {
+    font-size: 14px;
+    color: #b38e9d;
+    margin-top: 8px;
+}
+
+.result-option {
+    margin: 20px 0 0;
+    padding: 18px 10px;
+    border-radius: 17px;
+    background: #ffe7ee;
+    color: #c86e8d;
+    font-size: 26px;
+    font-weight: 900;
+    border: 2px dashed #e9afc3;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pop {
+    from {
+        transform: scale(.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 500px) {
+    .game {
+        padding: 18px 5px 25px;
+    }
+
+    .cat-container {
+        width: 100%;
+    }
+
+    .subtitle {
+        margin-bottom: 12px;
+    }
+
+    .current-box {
+        margin-bottom: 8px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<main class="game">
+
+
+
+    <!-- 目前選項 -->
+
+    <div class="current-box">
+
+        <div class="current-option" id="currentOption">
+            選項 1
+        </div>
+    </div>
+
+    <!-- 貓咪 -->
+
+    <div class="cat-container" id="catContainer">
+
+        <svg class="cat-svg"
+             viewBox="0 0 600 480"
+             xmlns="http://www.w3.org/2000/svg">
+
+            <!-- 左耳 -->
+            <path d="M105 180 L105 45 Q110 12 143 45 L220 128 Z"
+                  class="cat-body"/>
+            <path d="M120 139 L121 63 Q124 48 141 66 L187 120 Z"
+                  class="ear-inner"/>
+
+            <!-- 右耳 -->
+            <path d="M495 180 L495 45 Q490 12 457 45 L380 128 Z"
+                  class="cat-body"/>
+            <path d="M480 139 L479 63 Q476 48 459 66 L413 120 Z"
+                  class="ear-inner"/>
+
+            <!-- 頭部 -->
+            <ellipse cx="300" cy="247" rx="214" ry="191"
+                     class="cat-body"/>
+
+            <!-- 眼睛 -->
+            <ellipse cx="218" cy="165" rx="15" ry="22" class="eye"/>
+            <ellipse cx="382" cy="165" rx="15" ry="22" class="eye"/>
+
+            <circle cx="223" cy="158" r="5" class="eye-light"/>
+            <circle cx="387" cy="158" r="5" class="eye-light"/>
+
+            <!-- 腮紅 -->
+            <ellipse cx="155" cy="213" rx="27" ry="13" class="cheek"/>
+            <ellipse cx="445" cy="213" rx="27" ry="13" class="cheek"/>
+
+            <!-- 鼻子 -->
+            <path d="M287 194 Q300 184 313 194 Q311 210 300 211 Q289 210 287 194"
+                  class="nose"/>
+
+            <!-- 嘴巴線條：張嘴與閉嘴共用 -->
+
+            <path d="M300 211
+                     Q300 225 285 230
+                     M300 211
+                     Q300 225 315 230"
+                  class="mouth-line"/>
+
+            <!-- 鬍鬚 -->
+            <path d="M80 205 L165 220 M78 233 L163 232 M85 260 L166 245"
+                  class="whisker"/>
+            <path d="M520 205 L435 220 M522 233 L437 232 M515 260 L434 245"
+                  class="whisker"/>
+
+            <!-- 張開的嘴巴與牙齒 -->
+            <g class="mouth-content">
+
+                <ellipse class="mouth"
+                         cx="300"
+                         cy="290"
+                         rx="180"
+                         ry="112"/>
+
+                <!-- 牙齒由 JS 建立 -->
+
+            </g>
+
+            <!-- 下巴 -->
+            <path d="M270 405 Q300 420 330 405"
+                  stroke="#e4bac9"
+                  stroke-width="3"
+                  fill="none"
+                  stroke-linecap="round"/>
+
+        </svg>
+    </div>
+
+
+</main>
+
+<!-- 結果視窗：點擊任意位置重新開始 -->
+
+<div class="result-overlay" id="resultOverlay"
+     onclick="resetGame()">
+
+    <div class="result-card">
+
+        <svg class="result-cat" viewBox="0 0 100 85">
+            <path d="M10 35 L12 5 L35 24 Q50 15 65 24 L88 5 L90 35 Q98 65 50 75 Q2 65 10 35Z"
+                  fill="#fff"
+                  stroke="#eadde2"
+                  stroke-width="2"/>
+
+            <ellipse cx="33" cy="42" rx="4" ry="6" fill="#59434b"/>
+            <ellipse cx="67" cy="42" rx="4" ry="6" fill="#59434b"/>
+
+            <path d="M46 51 Q50 46 54 51 Q50 57 46 51Z"
+                  fill="#e995ae"/>
+
+            <path d="M50 55 L50 60 M50 60 Q44 65 40 60 M50 60 Q56 65 60 60"
+                  fill="none"
+                  stroke="#a77c8b"
+                  stroke-width="2"/>
+        </svg>
+
+        <div class="result-title">被小貓咬到了！</div>
+
+
+
+        <div class="result-option" id="resultOption">
+            選項 1
+        </div>
+
+    </div>
+</div>
+
+<script>
+const svgNS = "http://www.w3.org/2000/svg";
+
+const options = Array.from(
+    { length: 30 },
+    (_, i) => `選項 ${i + 1}`
+);
+
+const mouth = document.querySelector(".mouth-content");
+
+const teeth = [];
+
+/* =========================
+   牙齒資料
+========================= */
+
+function addTooth(x, y, type, upper) {
+    teeth.push({ x, y, type, upper });
+}
+
+// 上顎門齒
+[265, 279, 293, 307, 321, 335].forEach(x => {
+    addTooth(x, 214, "incisor", true);
+});
+
+// 上顎犬齒
+addTooth(230, 230, "canine", true);
+addTooth(370, 230, "canine", true);
+
+// 上顎前臼齒
+[
+    [205, 240],
+    [180, 253],
+    [155, 267],
+    [395, 240],
+    [420, 253],
+    [445, 267]
+].forEach(p => {
+    addTooth(p[0], p[1], "premolar", true);
+});
+
+// 上顎臼齒
+addTooth(133, 278, "molar", true);
+addTooth(467, 278, "molar", true);
+
+// 下顎門齒
+[265, 279, 293, 307, 321, 335].forEach(x => {
+    addTooth(x, 365, "incisor", false);
+});
+
+// 下顎犬齒
+addTooth(235, 350, "canine", false);
+addTooth(365, 350, "canine", false);
+
+// 下顎前臼齒
+[
+    [190, 340],
+    [215, 355],
+    [410, 340],
+    [385, 355]
+].forEach(p => {
+    addTooth(p[0], p[1], "premolar", false);
+});
+
+// 下顎臼齒
+addTooth(160, 328, "molar", false);
+addTooth(440, 328, "molar", false);
+
+
+/* =========================
+   牙齒形狀
+========================= */
+
+function toothPath(type, x, y, upper) {
+
+    if (type === "incisor") {
+        return `
+            M ${x-5} ${y-8}
+            Q ${x} ${y-12} ${x+5} ${y-8}
+            L ${x+5} ${y+8}
+            Q ${x} ${y+11} ${x-5} ${y+8}
+            Z
+        `;
+    }
+
+    if (type === "canine") {
+
+        if (upper) {
+            return `
+                M ${x-9} ${y-9}
+                Q ${x} ${y-15} ${x+9} ${y-9}
+                Q ${x+8} ${y+7} ${x} ${y+24}
+                Q ${x-8} ${y+7} ${x-9} ${y-9}
+                Z
+            `;
+        }
+
+        return `
+            M ${x-9} ${y+9}
+            Q ${x} ${y+15} ${x+9} ${y+9}
+            Q ${x+8} ${y-7} ${x} ${y-24}
+            Q ${x-8} ${y-7} ${x-9} ${y+9}
+            Z
+        `;
+    }
+
+    if (type === "premolar") {
+
+        if (upper) {
+            return `
+                M ${x-10} ${y-8}
+                Q ${x-5} ${y-14} ${x} ${y-8}
+                Q ${x+5} ${y-14} ${x+10} ${y-8}
+                L ${x+9} ${y+9}
+                Q ${x} ${y+13} ${x-9} ${y+9}
+                Z
+            `;
+        }
+
+        return `
+            M ${x-10} ${y+8}
+            Q ${x-5} ${y+14} ${x} ${y+8}
+            Q ${x+5} ${y+14} ${x+10} ${y+8}
+            L ${x+9} ${y-9}
+            Q ${x} ${y-13} ${x-9} ${y-9}
+            Z
+        `;
+    }
+
+    if (type === "molar") {
+
+        if (upper) {
+            return `
+                M ${x-11} ${y-8}
+                Q ${x-5} ${y-14} ${x} ${y-8}
+                Q ${x+6} ${y-14} ${x+11} ${y-8}
+                L ${x+10} ${y+8}
+                Q ${x} ${y+13} ${x-10} ${y+8}
+                Z
+            `;
+        }
+
+        return `
+            M ${x-11} ${y+8}
+            Q ${x-5} ${y+14} ${x} ${y+8}
+            Q ${x+6} ${y+14} ${x+11} ${y+8}
+            L ${x+10} ${y-8}
+            Q ${x} ${y-13} ${x-10} ${y-8}
+            Z
+        `;
+    }
+}
+
+
+/* =========================
+   遊戲狀態
+========================= */
+
+let dangerIndex = -1;
+
+let used = Array(30).fill(false);
+
+let gameOver = false;
+
+let optionIndex = 0;
+
+
+/* =========================
+   建立牙齒
+========================= */
+
+function createTeeth() {
+
+    teeth.forEach((data, index) => {
+
+        const group = document.createElementNS(svgNS, "g");
+
+        group.classList.add("tooth-group");
+
+        const path = document.createElementNS(svgNS, "path");
+
+        path.setAttribute(
+            "d",
+            toothPath(data.type, data.x, data.y, data.upper)
+        );
+
+        path.classList.add("tooth");
+
+        // 擴大點擊範圍
+        const hitbox = document.createElementNS(svgNS, "circle");
+
+        hitbox.setAttribute("cx", data.x);
+        hitbox.setAttribute("cy", data.y);
+
+        hitbox.setAttribute(
+            "r",
+            data.type === "canine" ? 19 : 16
+        );
+
+        hitbox.setAttribute("fill", "transparent");
+
+        group.appendChild(path);
+        group.appendChild(hitbox);
+
+        group.setAttribute("tabindex", "0");
+        group.setAttribute("role", "button");
+
+        group.setAttribute(
+            "aria-label",
+            `第 ${index + 1} 顆牙齒`
+        );
+
+        group.addEventListener("click", () => {
+            selectTooth(index, group);
+        });
+
+        group.addEventListener("keydown", e => {
+
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                selectTooth(index, group);
+            }
+
+        });
+
+        mouth.appendChild(group);
+    });
+}
+
+
+/* =========================
+   更新目前選項
+========================= */
+
+function updateOption() {
+
+    document.getElementById("currentOption").textContent =
+        options[optionIndex];
+}
+
+
+/* =========================
+   點擊牙齒
+========================= */
+
+function selectTooth(index, group) {
+
+    if (gameOver || used[index]) return;
+
+    // 取得目前顯示的選項
+    const currentOption = options[optionIndex];
+
+    used[index] = true;
+
+    const tooth = group.querySelector(".tooth");
+
+    // 危險牙齒
+    if (index === dangerIndex) {
+
+        gameOver = true;
+
+        tooth.classList.add("danger");
+
+        // 顯示當下選項作為結果
+        document.getElementById("resultOption").textContent =
+            currentOption;
+
+        // 貓咪閉嘴
+        document.getElementById("catContainer")
+            .classList.add("bite");
+
+        setTimeout(() => {
+
+            document.getElementById("resultOverlay")
+                .classList.add("show");
+
+        }, 650);
+
+        return;
+    }
+
+    // 安全牙齒
+    tooth.classList.add("used");
+
+    // 安全才切換下一個選項
+    if (optionIndex < options.length - 1) {
+        optionIndex++;
+    }
+
+    updateOption();
+}
+
+
+/* =========================
+   點擊結果畫面後重新開始
+========================= */
+
+function resetGame() {
+
+    used = Array(30).fill(false);
+
+    gameOver = false;
+
+    optionIndex = 0;
+
+    // 重新隨機分配危險牙齒
+    dangerIndex = Math.floor(Math.random() * 30);
+
+    // 恢復全部牙齒
+    document.querySelectorAll(".tooth").forEach(tooth => {
+        tooth.classList.remove("used", "danger");
+    });
+
+    // 恢復貓咪張嘴狀態
+    document.getElementById("catContainer")
+        .classList.remove("bite");
+
+    // 回到第一個選項
+    updateOption();
+
+    // 關閉結果視窗
+    document.getElementById("resultOverlay")
+        .classList.remove("show");
+}
+
+
+/* =========================
+   初始化
+========================= */
+
+createTeeth();
+resetGame();
+
+</script>
+
+</body>
+</html>

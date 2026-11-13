@@ -18,7 +18,6 @@ const tutorialDescription = document.getElementById('tutorialDescription');
 const tutorialProgress = document.getElementById('tutorialProgress');
 const tutorialButton = document.getElementById('tutorialButton');
 const tutorialHint = document.getElementById('tutorialHint');
-const tutorialLauncher = document.getElementById('tutorialLauncher');
 
 let tutorialActive = false;
 let tutorialStage = 0;
@@ -97,27 +96,6 @@ function showTutorial(stage) {
 }
 
 /* 教學按鈕 */
-tutorialButton.addEventListener('click', () => {
-    if (!tutorialActive) return;
-
-    if (tutorialStage === 0) {
-        showTutorial(1);
-    } else if (tutorialStage === 1) {
-        showTutorial(2);
-    } else if (tutorialStage === 4) {
-        tutorialActive = false;
-        tutorialCard.classList.add('hidden');
-
-        canvas.classList.remove('tutorial-highlight');
-        spinBtn.classList.remove('tutorial-highlight');
-    }
-});
-
-tutorialLauncher.addEventListener('click', () => {
-    tutorialActive = true;
-    showTutorial(0);
-});
-
 /* 載入中央人物圖片 */
 const centerImage = new Image();
 centerImage.src = "../images/center.png";

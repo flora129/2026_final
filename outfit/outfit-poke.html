@@ -1,0 +1,574 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜夢幻戳戳樂</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --pink: #f3b5c9;
+    --deep-pink: #d77f9e;
+    --light-pink: #ffe6ee;
+    --purple: #d9c9ed;
+    --yellow: #f7e1a9;
+    --mint: #c5e6d8;
+    --blue: #c9e1f3;
+    --text: #806477;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 45px 15px 65px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, "Microsoft JhengHei", sans-serif;
+    background: #ffeaf1;
+    color: var(--text);
+}
+
+.container {
+    width: 100%;
+    max-width: 760px;
+    text-align: center;
+}
+
+.box-wrap {
+    width: 100%;
+    max-width: 650px;
+    margin: auto;
+    position: relative;
+    padding-bottom: 24px;
+}
+
+.gacha-box {
+    position: relative;
+    background: #f3b5c9;
+    border: 7px solid #fff9f6;
+    border-radius: 27px;
+    padding: 20px 22px 27px;
+    box-shadow:
+        0 12px 0 #d887a4,
+        0 17px 0 #c97896,
+        0 23px 30px rgba(164, 100, 127, .22);
+}
+
+/* 盒子上蓋 */
+
+.box-lid {
+    position: relative;
+    z-index: 2;
+    height: 48px;
+    margin: -20px -22px 22px;
+    border-radius: 19px 19px 7px 7px;
+    background: linear-gradient(
+        to bottom,
+        #ffd8e4 0%,
+        #f6bfd0 75%,
+        #e99eb8 100%
+    );
+    border: 5px solid #fff9f6;
+    box-shadow:
+        0 7px 0 #d989a5,
+        0 10px 12px rgba(151, 89, 116, .12);
+}
+
+.box-lid::before {
+    content: "";
+    position: absolute;
+    width: 100px;
+    height: 8px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.65);
+    left: 50%;
+    top: 13px;
+    transform: translateX(-50%);
+}
+
+/* 戳戳區 */
+
+.grid-frame {
+    background: #fff8f4;
+    border: 7px solid #eaa6bc;
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow:
+        inset 0 4px 8px rgba(176, 116, 142, .12),
+        0 5px 0 #d88ca7;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    max-width: 550px;
+    margin: auto;
+}
+
+/* 戳戳格 */
+
+.hole {
+    aspect-ratio: 1;
+    border: 4px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 5px 0 rgba(151, 100, 130, .15),
+        inset 0 3px 5px rgba(255,255,255,.35);
+    transition: transform .2s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.hole:nth-child(4n+1) {
+    background: #f3b4c8;
+}
+
+.hole:nth-child(4n+2) {
+    background: #c8b8e7;
+}
+
+.hole:nth-child(4n+3) {
+    background: #f6dda0;
+}
+
+.hole:nth-child(4n) {
+    background: #b8dfce;
+}
+
+.hole:hover:not(.opened) {
+    transform: translateY(-4px) scale(1.04);
+}
+
+/* 禮物圖案 */
+
+.gift {
+    width: 42%;
+    height: 35%;
+    position: relative;
+    background: #fff8f4;
+    border-radius: 3px;
+    margin-top: 10%;
+}
+
+.gift::before {
+    content: "";
+    position: absolute;
+    width: 115%;
+    height: 22%;
+    background: #fff;
+    left: -7.5%;
+    top: -22%;
+    border-radius: 3px;
+}
+
+.gift::after {
+    content: "";
+    position: absolute;
+    width: 13%;
+    height: 100%;
+    left: 43.5%;
+    top: 0;
+    background: #e99ab4;
+}
+
+.gift-ribbon {
+    position: absolute;
+    width: 45%;
+    height: 30%;
+    left: 27.5%;
+    top: -42%;
+    border: 3px solid #fff8f4;
+    border-radius: 50% 50% 0 50%;
+    transform: rotate(-25deg);
+}
+
+.gift-ribbon::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #fff8f4;
+    border-radius: 50% 50% 50% 0;
+    left: 65%;
+    top: 10%;
+    transform: rotate(55deg);
+}
+
+/* 已戳開 */
+
+.hole.opened {
+    background: #e8dce2;
+    border: 4px dashed #c6aab9;
+    box-shadow: inset 0 4px 8px rgba(100, 70, 90, .15);
+    cursor: default;
+    transform: scale(.94);
+}
+
+.hole.opened .gift {
+    display: none;
+}
+
+.hole.opened::after {
+    content: "";
+    width: 48%;
+    height: 48%;
+    border-radius: 50%;
+    background: #d1bdc9;
+    box-shadow: inset 0 3px 7px rgba(90, 65, 85, .15);
+}
+
+/* 盒子底部 */
+
+.box-footer {
+    margin-top: 23px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.count {
+    color: #fff;
+    font-size: 15px;
+    font-weight: bold;
+    background: #d98ba8;
+    border-radius: 30px;
+    padding: 10px 23px;
+    box-shadow: 0 4px 0 #c77c98;
+}
+
+/* 重新開始 */
+
+.reset {
+    margin-top: 28px;
+    padding: 12px 32px;
+    border: 3px solid white;
+    border-radius: 30px;
+    background: #e9a3bb;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+    box-shadow: 0 5px 0 #cf829f;
+    transition: .2s;
+}
+
+.reset:hover {
+    transform: translateY(-2px);
+    background: #df91ad;
+}
+
+/* 結果視窗 */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(91,65,81,.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.overlay.show {
+    display: flex;
+    animation: fadeIn .25s ease;
+}
+
+/* 結果卡片 */
+
+.result-card {
+    width: 100%;
+    max-width: 370px;
+    min-height: 290px;
+    background: #fffaf5;
+    border: 6px solid white;
+    border-radius: 25px;
+    padding: 65px 25px 35px;
+    box-shadow:
+        0 10px 0 #edc6d3,
+        0 15px 30px rgba(100,65,90,.2);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    animation: pop .35s ease;
+}
+
+/* 蝴蝶結左、右翅膀 */
+
+.result-card::before {
+    content: "";
+    position: absolute;
+    width: 31px;
+    height: 25px;
+    top: 15px;
+    left: calc(50% - 34px);
+    background: linear-gradient(135deg, #f6bfd0, #dc91ac);
+    border: 2px solid #d77f9e;
+    border-radius: 85% 15% 75% 25%;
+    transform: rotate(25deg);
+    box-shadow: 0 3px 4px rgba(150, 90, 115, .15);
+}
+
+/* 蝴蝶結右翅膀與中心 */
+
+.result-card::after {
+    content: "";
+    position: absolute;
+    width: 31px;
+    height: 25px;
+    top: 15px;
+    left: calc(50% + 3px);
+    background: linear-gradient(135deg, #ffdce6, #e9a3bb);
+    border: 2px solid #d77f9e;
+    border-radius: 15% 85% 25% 75%;
+    transform: rotate(-25deg);
+    box-shadow: 0 3px 4px rgba(150, 90, 115, .15);
+}
+
+/* 結果文字 */
+
+.result-text {
+    width: 100%;
+    min-height: 85px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow-wrap: anywhere;
+    font-size: 36px;
+    font-weight: bold;
+    line-height: 1.5;
+    color: #80647c;
+    padding: 10px;
+}
+
+/* 動畫 */
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: scale(.7);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 手機版 */
+
+@media(max-width: 480px) {
+    body {
+        padding: 30px 12px 45px;
+    }
+
+    .gacha-box {
+        padding: 16px 12px 23px;
+        border-width: 5px;
+    }
+
+    .box-lid {
+        margin: -16px -12px 18px;
+        height: 40px;
+    }
+
+    .grid-frame {
+        padding: 12px;
+        border-width: 5px;
+    }
+
+    .grid {
+        gap: 9px;
+    }
+
+    .result-card {
+        min-height: 260px;
+        padding: 60px 20px 30px;
+    }
+
+    .result-text {
+        font-size: 30px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="box-wrap">
+
+        <div class="gacha-box">
+
+            <div class="box-lid"></div>
+
+            <div class="grid-frame">
+                <div class="grid" id="grid"></div>
+            </div>
+
+            <div class="box-footer">
+                <div class="count" id="count"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <button class="reset" onclick="resetGame()">
+        重新開始
+    </button>
+
+</div>
+
+<!-- 抽獎結果 -->
+
+<div class="overlay" id="overlay" onclick="closeResult()">
+
+    <div class="result-card">
+        <div class="result-text" id="resultText"></div>
+    </div>
+
+</div>
+
+<script>
+
+/* 獎項 */
+
+const prizes = [
+    "選項一",
+    "選項二",
+    "選項三",
+    "選項四",
+    "選項五",
+    "選項六",
+    "選項七",
+    "選項八",
+    "選項九",
+    "選項十",
+    "選項十一",
+    "選項十二"
+];
+
+let remaining = prizes.length;
+let availablePrizes = [...prizes];
+
+/* 元素 */
+
+const grid = document.getElementById("grid");
+const count = document.getElementById("count");
+const overlay = document.getElementById("overlay");
+const resultText = document.getElementById("resultText");
+
+/* 更新剩餘數量 */
+
+function updateCount() {
+    count.textContent = `剩餘數量: ${remaining} 個`;
+}
+
+/* 建立戳戳格 */
+
+function createGrid() {
+
+    grid.innerHTML = "";
+
+    for (let i = 0; i < prizes.length; i++) {
+
+        const hole = document.createElement("div");
+
+        hole.className = "hole";
+
+        hole.innerHTML = `
+            <div class="gift">
+                <div class="gift-ribbon"></div>
+            </div>
+        `;
+
+        hole.addEventListener("click", () => {
+            drawPrize(hole);
+        });
+
+        grid.appendChild(hole);
+    }
+
+    updateCount();
+}
+
+/* 抽獎 */
+
+function drawPrize(hole) {
+
+    if (hole.classList.contains("opened")) return;
+
+    if (availablePrizes.length === 0) return;
+
+    const randomIndex = Math.floor(
+        Math.random() * availablePrizes.length
+    );
+
+    const prize = availablePrizes.splice(randomIndex, 1)[0];
+
+    hole.classList.add("opened");
+
+    remaining--;
+
+    resultText.textContent = prize;
+
+    updateCount();
+
+    overlay.classList.add("show");
+}
+
+/* 關閉結果 */
+
+function closeResult() {
+    overlay.classList.remove("show");
+}
+
+/* 重新開始 */
+
+function resetGame() {
+
+    remaining = prizes.length;
+
+    availablePrizes = [...prizes];
+
+    overlay.classList.remove("show");
+
+    resultText.textContent = "";
+
+    createGrid();
+}
+
+/* 初始化 */
+
+createGrid();
+
+</script>
+
+</body>
+</html>

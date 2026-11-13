@@ -1,0 +1,2453 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜台北都市散步迷宮</title>
+
+<script type="importmap">
+{
+  "imports":{
+    "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box}
+:root{
+  --pink:#f3b5c9;
+  --deep:#d77f9e;
+  --light:#ffe8ef;
+  --cream:#fff8f2;
+  --dark:#573b4b;
+}
+body{
+  margin:0;
+  overflow:hidden;
+  background:#25252a;
+  font-family:Arial,"Noto Sans TC",sans-serif;
+}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#hud{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  display:none;
+}
+.hud-top{
+  position:absolute;
+  top:18px;
+  left:18px;
+  right:18px;
+  display:flex;
+  justify-content:space-between;
+}
+.hud-box{
+  padding:12px 18px;
+  border-radius:12px;
+  background:#28212cce;
+  border:1px solid #ffffff35;
+  color:white;
+  font-size:13px;
+  backdrop-filter:blur(8px);
+}
+.hud-box strong{color:#ffc5d8}
+#crosshair{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:8px;
+  height:8px;
+  transform:translate(-50%,-50%);
+  border:2px solid white;
+  border-radius:50%;
+}
+#tips{
+  position:absolute;
+  right:20px;
+  bottom:20px;
+  background:#28212cbd;
+  padding:12px 16px;
+  border-radius:10px;
+  color:white;
+  font-size:12px;
+  line-height:1.9;
+}
+.overlay{
+  position:fixed;
+  inset:0;
+  z-index:10;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  background:#17141cbd;
+  backdrop-filter:blur(9px);
+}
+.panel{
+  width:min(510px,100%);
+  max-height:90vh;
+  overflow:auto;
+  padding:32px;
+  text-align:center;
+  background:linear-gradient(145deg,#fff8f2,#ffe8ef);
+  border:2px solid white;
+  border-radius:24px;
+  color:var(--dark);
+  box-shadow:0 15px 55px #0005;
+}
+.logo{
+  font-size:12px;
+  letter-spacing:4px;
+  color:var(--deep);
+  font-weight:bold;
+}
+h1{
+  color:#a94f73;
+  font-size:28px;
+  margin:13px 0;
+}
+.subtitle{
+  font-size:13px;
+  line-height:1.9;
+  color:#927483;
+  margin-bottom:20px;
+}
+.info{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin:20px 0;
+}
+.info div{
+  background:white;
+  padding:13px 5px;
+  border-radius:12px;
+}
+.info strong{
+  display:block;
+  font-size:23px;
+  color:#c66b8b;
+}
+.info span{font-size:11px;color:#927483}
+.btn{
+  width:100%;
+  padding:15px;
+  margin-top:12px;
+  border:0;
+  border-radius:13px;
+  background:linear-gradient(135deg,#ef9fba,#d77f9e);
+  color:white;
+  font-weight:bold;
+  font-size:15px;
+  cursor:pointer;
+  transition:.2s;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn.secondary{
+  background:white;
+  color:#b05d7c;
+  border:1px solid #e8bdcc;
+}
+#pauseOverlay,#resultOverlay{display:none}
+.result-place{
+  font-size:34px;
+  color:#a94f73;
+  font-weight:bold;
+  margin:25px 0;
+  line-height:1.5;
+}
+.result-sub{
+  font-size:13px;
+  color:#927483;
+  line-height:1.9;
+}
+@media(max-width:600px){
+  .panel{padding:24px 18px}
+  h1{font-size:24px}
+  #tips{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="hud">
+  <div class="hud-top">
+    <div class="hud-box">
+      <strong>台北都市迷宮</strong>
+      <span>｜單張地圖</span>
+    </div>
+    <div class="hud-box">
+      探索時間：<strong id="timer">00:00</strong>
+    </div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="tips">
+    W / S：前進、後退<br>
+    A / D：左右移動<br>
+    滑鼠：控制視角<br>
+    ESC：暫停遊戲
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="panel">
+    <div class="logo">PICKME · TAIPEI WALK</div>
+    <h1>台北都市散步迷宮</h1>
+    <div class="subtitle">
+      在台北的街道與巷弄中探索。<br>
+      從唯一的入口出發，尋找十五個不同的出口。
+    </div>
+    <div class="info">
+      <div><strong>1</strong><span>張迷宮</span></div>
+      <div><strong>15</strong><span>個出口</span></div>
+      <div><strong>15</strong><span>台北景點</span></div>
+    </div>
+    <button class="btn" id="startBtn">開始都市探索</button>
+    <div class="subtitle" style="margin:17px 0 0;font-size:11px">
+      建議使用電腦與滑鼠遊玩
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pauseOverlay">
+  <div class="panel">
+    <div class="logo">PICKME · PAUSE</div>
+    <h1>探索暫停中</h1>
+    <div class="subtitle">你可以繼續探索，或重新生成這張迷宮。</div>
+    <button class="btn" id="resumeBtn">繼續探索</button>
+    <button class="btn secondary" id="restartBtn">重新生成迷宮</button>
+    <button class="btn secondary" id="homeBtn">返回主畫面</button>
+  </div>
+</div>
+
+<div class="overlay" id="resultOverlay">
+  <div class="panel">
+    <div class="logo">PICKME · DESTINATION</div>
+    <h1>成功抵達出口</h1>
+    <div class="subtitle">本次抵達的台北景點</div>
+    <div class="result-place" id="resultPlace"></div>
+    <div class="result-sub" id="resultDesc"></div>
+    <button class="btn" id="againBtn">重新探索</button>
+    <button class="btn secondary" id="resultHomeBtn">返回主畫面</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+import {PointerLockControls} from "three/addons/controls/PointerLockControls.js";
+
+/* =========================
+   景點資料
+========================= */
+
+const places=[
+  {name:"台北101",desc:"台北最具代表性的摩天大樓，可以欣賞信義區的都市景觀。"},
+  {name:"西門町",desc:"充滿流行文化、街頭表演與特色商店的熱鬧商圈。"},
+  {name:"象山",desc:"可以從步道高處欣賞台北市區與台北101的景色。"},
+  {name:"饒河街觀光夜市",desc:"以傳統小吃、夜市攤販與熱鬧街景聞名。"},
+  {name:"士林夜市",desc:"台北知名夜市，聚集各式小吃與商店。"},
+  {name:"寧夏夜市",desc:"以台灣傳統小吃與在地夜市氛圍聞名。"},
+  {name:"大稻埕",desc:"保留老台北街區特色，融合歷史建築與商業文化。"},
+  {name:"迪化街",desc:"具有傳統街屋、南北貨商店與歷史建築特色。"},
+  {name:"中正紀念堂",desc:"以大型廣場、紀念建築與寬闊步道聞名。"},
+  {name:"國立故宮博物院",desc:"收藏大量中國歷史文物與藝術品。"},
+  {name:"華山1914文化創意產業園區",desc:"由舊工業建築改造而成的藝文展演空間。"},
+  {name:"松山文創園區",desc:"結合展覽、設計、文創商店與歷史建築。"},
+  {name:"陽明山",desc:"具有山林、步道與自然景觀的休閒區域。"},
+  {name:"北投溫泉",desc:"以溫泉文化、溫泉旅館與自然景觀聞名。"},
+  {name:"貓空",desc:"以茶文化、山景與纜車景觀聞名。"}
+];
+
+const N=35;
+const CELL=5;
+const PLAYER_HEIGHT=1.65;
+const PLAYER_RADIUS=.43;
+const WALL_T=.42;
+
+let scene,camera,renderer,controls,cityGroup;
+let cells=[],exits=[],wallBounds=[],obstacleBounds=[];
+let entranceRing=null;
+let gameState="menu";
+let startTime=0;
+let keys={};
+
+const clock=new THREE.Clock();
+const $=id=>document.getElementById(id);
+
+function rand(a,b){return Math.random()*(b-a)+a}
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+    [a[j],a[i]]=[a[i],a[j]];
+  }
+  return a;
+}
+
+function wx(x){return (x-(N-1)/2)*CELL}
+function wz(z){return (z-(N-1)/2)*CELL}
+
+function mat(color,roughness=.9){
+  return new THREE.MeshStandardMaterial({color,roughness});
+}
+
+function addBox(parent,x,y,z,sx,sy,sz,material){
+  const mesh=new THREE.Mesh(
+    new THREE.BoxGeometry(sx,sy,sz),
+    material
+  );
+  mesh.position.set(x,y,z);
+  mesh.castShadow=true;
+  mesh.receiveShadow=true;
+  parent.add(mesh);
+  return mesh;
+}
+
+function addCylinder(parent,x,y,z,r1,r2,h,material){
+  const mesh=new THREE.Mesh(
+    new THREE.CylinderGeometry(r1,r2,h,10),
+    material
+  );
+  mesh.position.set(x,y,z);
+  mesh.castShadow=true;
+  parent.add(mesh);
+  return mesh;
+}
+
+/* =========================
+   障礙物碰撞與安全放置
+========================= */
+
+function addObstacleBox(x,z,width,depth){
+  obstacleBounds.push({
+    minX:x-width/2,
+    maxX:x+width/2,
+    minZ:z-depth/2,
+    maxZ:z+depth/2
+  });
+}
+
+function addObstacleCircle(x,z,radius){
+  addObstacleBox(x,z,radius*2,radius*2);
+}
+
+// 依照物件旋轉角度計算真正的軸對齊碰撞範圍
+function addObstacleRotatedBox(x,z,width,depth,rotation){
+
+  const c=Math.abs(Math.cos(rotation));
+  const s=Math.abs(Math.sin(rotation));
+
+  const rotatedWidth=width*c+depth*s;
+  const rotatedDepth=width*s+depth*c;
+
+  addObstacleBox(x,z,rotatedWidth,rotatedDepth);
+}
+
+function clearCollisionData(){
+  wallBounds=[];
+  obstacleBounds=[];
+}
+
+// 矩形重疊檢查
+function rectOverlap(a,b,padding=0){
+
+  return !(
+    a.maxX+padding<=b.minX||
+    a.minX-padding>=b.maxX||
+    a.maxZ+padding<=b.minZ||
+    a.minZ-padding>=b.maxZ
+  );
+}
+
+// 取得障礙物的世界座標範圍
+function getPropBounds(x,z,width,depth,rotation=0){
+
+  const c=Math.abs(Math.cos(rotation));
+  const s=Math.abs(Math.sin(rotation));
+
+  const w=width*c+depth*s;
+  const d=width*s+depth*c;
+
+  return{
+    minX:x-w/2,
+    maxX:x+w/2,
+    minZ:z-d/2,
+    maxZ:z+d/2
+  };
+}
+
+// 檢查障礙物是否與牆壁重疊
+function overlapsWall(bounds){
+
+  for(const wall of wallBounds){
+    if(rectOverlap(bounds,wall,.06)){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// 檢查障礙物是否與其他物件重疊
+function overlapsExistingProp(bounds){
+
+  for(const prop of obstacleBounds){
+    if(rectOverlap(bounds,prop,.16)){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// 取得格子內的相對座標
+function getCellIndex(x,z){
+
+  const gx=Math.round((x+(N-1)*CELL/2)/CELL);
+  const gz=Math.round((z+(N-1)*CELL/2)/CELL);
+
+  if(gx<0||gx>=N||gz<0||gz>=N){
+    return null;
+  }
+
+  return{x:gx,z:gz};
+}
+
+// 檢查物件是否占用格子的必要通道
+function blocksMazePassage(bounds,cellX,cellZ){
+
+  const centerX=wx(cellX);
+  const centerZ=wz(cellZ);
+
+  const local={
+    minX:bounds.minX-centerX,
+    maxX:bounds.maxX-centerX,
+    minZ:bounds.minZ-centerZ,
+    maxZ:bounds.maxZ-centerZ
+  };
+
+  const c=cells[cellZ][cellX];
+
+  // 只保護實際打通的方向
+  const corridors=[
+    {
+      side:0,
+      area:{minX:-.95,maxX:.95,minZ:-2.5,maxZ:.12}
+    },
+    {
+      side:1,
+      area:{minX:-.12,maxX:2.5,minZ:-.95,maxZ:.95}
+    },
+    {
+      side:2,
+      area:{minX:-.95,maxX:.95,minZ:-.12,maxZ:2.5}
+    },
+    {
+      side:3,
+      area:{minX:-2.5,maxX:.12,minZ:-.95,maxZ:.95}
+    }
+  ];
+
+  for(const corridor of corridors){
+
+    if(!c.walls[corridor.side]){
+      if(rectOverlap(local,corridor.area,0)){
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+// 綜合檢查物件能否放置
+function canPlaceProp(x,z,width,depth,rotation=0){
+
+  const cell=getCellIndex(x,z);
+  if(!cell)return false;
+
+  const bounds=getPropBounds(
+    x,z,width,depth,rotation
+  );
+
+  if(overlapsWall(bounds))return false;
+  if(overlapsExistingProp(bounds))return false;
+
+  if(blocksMazePassage(bounds,cell.x,cell.z)){
+    return false;
+  }
+
+  return true;
+}
+
+// 沿封閉牆邊尋找安全位置
+function findWallPlacement(
+  width,
+  depth,
+  attempts=180,
+  deadEndOnly=false
+){
+
+  for(let i=0;i<attempts;i++){
+
+    const x=Math.floor(rand(0,N));
+    const z=Math.floor(rand(0,N));
+    const cell=cells[z][x];
+
+    const openSides=[];
+
+    for(let side=0;side<4;side++){
+      if(!cell.walls[side]){
+        openSides.push(side);
+      }
+    }
+
+    // 汽車只能放在只有一個出口的格子
+    if(deadEndOnly&&openSides.length!==1){
+      continue;
+    }
+
+    const closedSides=[];
+
+    for(let side=0;side<4;side++){
+      if(cell.walls[side]){
+        closedSides.push(side);
+      }
+    }
+
+    if(!closedSides.length)continue;
+
+    let side;
+
+    if(deadEndOnly){
+      // 汽車停在唯一開口的反方向
+      side=(openSides[0]+2)%4;
+
+      if(!cell.walls[side])continue;
+    }else{
+      side=closedSides[
+        Math.floor(Math.random()*closedSides.length)
+      ];
+    }
+
+    // 依牆面方向旋轉物件
+    const rotation=(side===0||side===2)
+      ?Math.PI/2
+      :0;
+
+    const rotated=getPropBounds(
+      0,0,width,depth,rotation
+    );
+
+    const halfAlong=(side===0||side===2)
+      ?(rotated.maxX-rotated.minX)/2
+      :(rotated.maxZ-rotated.minZ)/2;
+
+    const halfPerpendicular=(side===0||side===2)
+      ?(rotated.maxZ-rotated.minZ)/2
+      :(rotated.maxX-rotated.minX)/2;
+
+    // 避免物件超出所在格子的可用範圍
+    if(halfAlong>2.15||halfPerpendicular>2.15){
+      continue;
+    }
+
+    const wallOffset=2.29-halfPerpendicular-.12;
+
+    let px=wx(x);
+    let pz=wz(z);
+
+    // 沿著封閉牆邊停放
+    const alongLimit=Math.max(0,2.1-halfAlong);
+    const alongMinimum=Math.min(1.4,alongLimit);
+    const along=deadEndOnly
+      ?0
+      :(Math.random()<.5?-1:1)*rand(alongMinimum,alongLimit);
+
+    if(side===0){
+      px+=along;
+      pz-=wallOffset;
+    }
+
+    if(side===1){
+      px+=wallOffset;
+      pz+=along;
+    }
+
+    if(side===2){
+      px+=along;
+      pz+=wallOffset;
+    }
+
+    if(side===3){
+      px-=wallOffset;
+      pz+=along;
+    }
+
+    if(!canPlaceProp(px,pz,width,depth,rotation)){
+      continue;
+    }
+
+    return{
+      x:px,
+      z:pz,
+      rotation,
+      cellX:x,
+      cellZ:z
+    };
+  }
+
+  return null;
+}
+
+function findCornerPlacement(width,depth,attempts=180){
+
+  for(let i=0;i<attempts;i++){
+    const cellX=Math.floor(rand(0,N));
+    const cellZ=Math.floor(rand(0,N));
+    const offset=CELL/2-Math.max(width,depth)/2-.35;
+    const x=wx(cellX)+(Math.random()<.5?-offset:offset);
+    const z=wz(cellZ)+(Math.random()<.5?-offset:offset);
+
+    if(!canPlaceProp(x,z,width,depth))continue;
+
+    return{x,z,rotation:0,cellX,cellZ};
+  }
+
+  return null;
+}
+
+// 尋找汽車專用位置
+function findCarPlacement(width,depth,attempts=500){
+
+  return findWallPlacement(
+    width,
+    depth,
+    attempts,
+    true
+  );
+}
+
+/* =========================
+   Three.js 初始化
+========================= */
+
+scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9aa0a5);
+scene.fog=new THREE.Fog(0x9aa0a5,65,185);
+
+camera=new THREE.PerspectiveCamera(
+  75,innerWidth/innerHeight,.1,350
+);
+camera.position.set(0,PLAYER_HEIGHT,0);
+
+renderer=new THREE.WebGLRenderer({
+  antialias:true,
+  powerPreference:"high-performance"
+});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+$("game").appendChild(renderer.domElement);
+
+controls=new PointerLockControls(camera,document.body);
+scene.add(new THREE.HemisphereLight(0xffffff,0x77716b,1.5));
+
+const sun=new THREE.DirectionalLight(0xffe8d1,2);
+sun.position.set(45,65,25);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-100;
+sun.shadow.camera.right=100;
+sun.shadow.camera.top=100;
+sun.shadow.camera.bottom=-100;
+scene.add(sun);
+
+/* =========================
+   迷宮生成
+========================= */
+
+function generateMaze(){
+
+  cells=Array.from({length:N},(_,z)=>
+    Array.from({length:N},(_,x)=>({
+      x,z,visited:false,
+      walls:[true,true,true,true]
+    }))
+  );
+
+  const dirs=[
+    {dx:0,dz:-1,a:0,b:2},
+    {dx:1,dz:0,a:1,b:3},
+    {dx:0,dz:1,a:2,b:0},
+    {dx:-1,dz:0,a:3,b:1}
+  ];
+
+  const sx=Math.floor(N/2);
+  const sz=N-1;
+  const stack=[];
+  const first=cells[sz][sx];
+
+  first.visited=true;
+  stack.push(first);
+
+  while(stack.length){
+
+    const current=stack[stack.length-1];
+    const next=[];
+
+    for(const d of dirs){
+      const nx=current.x+d.dx;
+      const nz=current.z+d.dz;
+
+      if(
+        nx>=0&&nx<N&&nz>=0&&nz<N&&
+        !cells[nz][nx].visited
+      ){
+        next.push({cell:cells[nz][nx],dir:d});
+      }
+    }
+
+    if(!next.length){
+      stack.pop();
+      continue;
+    }
+
+    const pick=next[Math.floor(Math.random()*next.length)];
+
+    current.walls[pick.dir.a]=false;
+    pick.cell.walls[pick.dir.b]=false;
+    pick.cell.visited=true;
+    stack.push(pick.cell);
+  }
+
+  for(let i=0;i<Math.floor(N*N*.075);i++){
+    const x=Math.floor(rand(0,N));
+    const z=Math.floor(rand(0,N));
+    const d=dirs[Math.floor(rand(0,4))];
+    const nx=x+d.dx,nz=z+d.dz;
+    if(nx<0||nx>=N||nz<0||nz>=N)continue;
+    cells[z][x].walls[d.a]=false;
+    cells[nz][nx].walls[d.b]=false;
+  }
+
+  cells[sz][sx].walls[2]=false;
+  cells[sz][sx].walls[0]=false;
+}
+
+/* =========================
+   15 個隨機出口
+========================= */
+
+function generateExits(){
+
+  const candidates=[];
+
+  for(let x=0;x<N;x++){
+    candidates.push({x,z:0,side:0});
+    candidates.push({x,z:N-1,side:2});
+  }
+
+  for(let z=1;z<N-1;z++){
+    candidates.push({x:0,z,side:3});
+    candidates.push({x:N-1,z,side:1});
+  }
+
+  const sx=Math.floor(N/2);
+  const sz=N-1;
+
+  const pool=shuffle(candidates.filter(p=>
+    !(p.x===sx&&p.z===sz)
+  ));
+
+  const selected=[];
+
+  for(const p of pool){
+    if(selected.length===15)break;
+    if(selected.every(q=>
+      Math.abs(p.x-q.x)+Math.abs(p.z-q.z)>=4
+    )){
+      selected.push(p);
+    }
+  }
+
+  for(const p of pool){
+    if(selected.length===15)break;
+    if(!selected.some(q=>q.x===p.x&&q.z===p.z)){
+      selected.push(p);
+    }
+  }
+
+  for(const p of selected){
+    cells[p.z][p.x].walls[p.side]=false;
+  }
+
+  const shuffledPlaces=shuffle(places);
+
+  exits=selected.map((p,i)=>{
+    let x=wx(p.x),z=wz(p.z);
+    const offset=CELL/2+1.8;
+
+    if(p.side===0)z-=offset;
+    if(p.side===2)z+=offset;
+    if(p.side===1)x+=offset;
+    if(p.side===3)x-=offset;
+
+    return{
+      x:p.x,z:p.z,side:p.side,
+      worldX:x,worldZ:z,
+      place:shuffledPlaces[i],
+      group:null,ring:null,triggered:false
+    };
+  });
+}
+
+/* =========================
+   地面與道路
+========================= */
+
+function buildGround(){
+
+  const roadGeo=new THREE.PlaneGeometry(CELL-.02,CELL-.02);
+
+  const roadMat=new THREE.MeshStandardMaterial({
+    color:0x454649,
+    roughness:1
+  });
+
+  const roads=new THREE.InstancedMesh(
+    roadGeo,
+    roadMat,
+    N*N
+  );
+
+  const dummy=new THREE.Object3D();
+  let index=0;
+
+  for(let z=0;z<N;z++){
+    for(let x=0;x<N;x++){
+
+      dummy.position.set(wx(x),-.005,wz(z));
+      dummy.rotation.x=-Math.PI/2;
+      dummy.updateMatrix();
+
+      roads.setMatrixAt(index++,dummy.matrix);
+    }
+  }
+
+  roads.instanceMatrix.needsUpdate=true;
+  cityGroup.add(roads);
+
+  const sidewalk=mat(0xa5a19a);
+  const curb=mat(0xcac4ba);
+
+  for(let z=0;z<N;z++){
+    for(let x=0;x<N;x++){
+
+      const c=cells[z][x];
+      const px=wx(x);
+      const pz=wz(z);
+
+      const sides=[
+        {side:0,dx:0,dz:-1},
+        {side:1,dx:1,dz:0},
+        {side:2,dx:0,dz:1},
+        {side:3,dx:-1,dz:0}
+      ];
+
+      sides.forEach(s=>{
+
+        if(!c.walls[s.side])return;
+
+        const sx=px+s.dx*(CELL/2-.55);
+        const sz=pz+s.dz*(CELL/2-.55);
+
+        if(s.side===0||s.side===2){
+          addBox(cityGroup,sx,.015,sz,CELL,.12,.9,sidewalk);
+        }else{
+          addBox(cityGroup,sx,.015,sz,.9,.12,CELL,sidewalk);
+        }
+
+        const cx=px+s.dx*(CELL/2-.08);
+        const cz=pz+s.dz*(CELL/2-.08);
+
+        if(s.side===0||s.side===2){
+          addBox(cityGroup,cx,.08,cz,CELL,.2,.13,curb);
+        }else{
+          addBox(cityGroup,cx,.08,cz,.13,.2,CELL,curb);
+        }
+      });
+    }
+  }
+
+  const lineMat=new THREE.MeshBasicMaterial({
+    color:0xe5d9b7
+  });
+
+  for(let z=0;z<N;z++){
+    for(let x=0;x<N;x++){
+
+      const c=cells[z][x];
+      const px=wx(x);
+      const pz=wz(z);
+
+      if(!c.walls[0]){
+        addBox(cityGroup,px,.014,pz-CELL*.22,.09,.018,.55,lineMat);
+      }
+
+      if(!c.walls[2]){
+        addBox(cityGroup,px,.014,pz+CELL*.22,.09,.018,.55,lineMat);
+      }
+
+      if(!c.walls[1]){
+        addBox(cityGroup,px+CELL*.22,.014,pz,.55,.018,.09,lineMat);
+      }
+
+      if(!c.walls[3]){
+        addBox(cityGroup,px-CELL*.22,.014,pz,.55,.018,.09,lineMat);
+      }
+    }
+  }
+
+  const drainMat=mat(0x28292a);
+
+  for(let i=0;i<65;i++){
+    addBox(
+      cityGroup,
+      wx(Math.floor(rand(0,N)))+rand(-1,1),
+      .025,
+      wz(Math.floor(rand(0,N)))+rand(-1,1),
+      .48,.025,.23,
+      drainMat
+    );
+  }
+}
+
+/* =========================
+   台式街屋招牌貼圖
+========================= */
+
+const shops=[
+  {name:"阿宗麵線",sub:"大腸麵線",color:"#f4d36b"},
+  {name:"永和豆漿",sub:"燒餅・油條・豆漿",color:"#e8e0cb"},
+  {name:"巷口滷味",sub:"冷滷・熱滷",color:"#d9b36e"},
+  {name:"珍珠奶茶",sub:"手搖飲專賣店",color:"#e6c8a7"},
+  {name:"傳統理髮廳",sub:"男士理髮",color:"#d5d9d0"},
+  {name:"台灣小吃",sub:"炒飯・炒麵・湯品",color:"#edc477"},
+  {name:"水果行",sub:"新鮮水果",color:"#d5e2a7"},
+  {name:"五金百貨",sub:"家庭生活用品",color:"#d7d1c5"},
+  {name:"機車行",sub:"維修・保養",color:"#c6d2d8"},
+  {name:"照相館",sub:"證件照・沖洗",color:"#d9c8df"},
+  {name:"美而美早餐",sub:"早餐・漢堡・奶茶",color:"#f1d6a6"},
+  {name:"藥局",sub:"健康生活",color:"#d5e6d5"},
+  {name:"洗衣店",sub:"專業洗衣",color:"#d3dce7"},
+  {name:"老地方麵店",sub:"在地好味道",color:"#e5c49b"},
+  {name:"便利商店",sub:"24H OPEN",color:"#d9e4d8"},
+  {name:"茶行",sub:"台灣好茶",color:"#d8c9a8"},
+  {name:"家庭理髮",sub:"平價剪髮",color:"#e0d2bd"},
+  {name:"雜貨店",sub:"柑仔店",color:"#e8d1a5"}
+];
+
+function shopTexture(shop,vertical=false){
+
+  const canvas=document.createElement("canvas");
+  canvas.width=vertical?220:768;
+  canvas.height=vertical?600:220;
+
+  const ctx=canvas.getContext("2d");
+  ctx.fillStyle=shop.color;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle="#51463e";
+  ctx.lineWidth=12;
+  ctx.strokeRect(6,6,canvas.width-12,canvas.height-12);
+
+  ctx.strokeStyle="#fff9e9";
+  ctx.lineWidth=4;
+  ctx.strokeRect(17,17,canvas.width-34,canvas.height-34);
+
+  ctx.fillStyle="#493b35";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+
+  if(vertical){
+    ctx.font="bold 66px sans-serif";
+    [...shop.name].slice(0,5).forEach((c,i)=>{
+      ctx.fillText(c,110,90+i*95);
+    });
+  }else{
+    ctx.font="bold 90px sans-serif";
+    ctx.fillText(shop.name,384,91);
+    ctx.font="bold 32px sans-serif";
+    ctx.fillText(shop.sub,384,169);
+  }
+
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  texture.anisotropy=4;
+  return texture;
+}
+
+function signRotation(side){
+  if(side===1)return -Math.PI/2;
+  if(side===2)return Math.PI;
+  if(side===3)return Math.PI/2;
+  return 0;
+}
+
+function createHorizontalSign(x,y,z,side,shop){
+
+  const group=new THREE.Group();
+  group.position.set(x,y,z);
+  group.rotation.y=signRotation(side);
+
+  const frame=mat(0x4d4945);
+  const board=mat(0xf3eadb);
+
+  addBox(group,0,0,0,1.9,.58,.16,frame);
+  addBox(group,0,0,.09,1.82,.5,.035,board);
+
+  const front=new THREE.Mesh(
+    new THREE.PlaneGeometry(1.78,.45),
+    new THREE.MeshBasicMaterial({
+      map:shopTexture(shop),
+      side:THREE.DoubleSide
+    })
+  );
+
+  front.position.set(0,0,.115);
+  group.add(front);
+
+  for(const sx of [-.66,.66]){
+    addBox(group,sx,-.39,-.04,.06,.7,.06,frame);
+  }
+
+  addBox(group,0,-.34,.04,1.4,.05,.13,mat(0xeee2c8));
+  cityGroup.add(group);
+}
+
+function createVerticalSign(x,y,z,side,shop){
+
+  const group=new THREE.Group();
+  group.position.set(x,y,z);
+  group.rotation.y=signRotation(side);
+
+  const frame=mat(0x514c47);
+  addBox(group,0,0,0,.58,1.75,.22,frame);
+
+  const front=new THREE.Mesh(
+    new THREE.PlaneGeometry(.48,1.62),
+    new THREE.MeshBasicMaterial({
+      map:shopTexture(shop,true),
+      side:THREE.DoubleSide
+    })
+  );
+
+  front.position.z=.125;
+  group.add(front);
+
+  addBox(group,0,.72,-.42,.1,.1,.85,frame);
+  cityGroup.add(group);
+}
+
+function createAwning(x,y,z,side,color){
+
+  const group=new THREE.Group();
+  group.position.set(x,y,z);
+  group.rotation.y=signRotation(side);
+
+  addBox(group,0,0,.36,2.35,.13,.78,mat(color));
+
+  const stripes=[0xe9e0d2,color,0xe9e0d2,color,0xe9e0d2];
+
+  stripes.forEach((c,i)=>{
+    addBox(group,-.94+i*.47,-.1,.73,.46,.22,.07,mat(c));
+  });
+
+  for(const px of [-1.15,1.15]){
+    addBox(group,px,-.68,.7,.06,1.2,.06,mat(0x55514b));
+  }
+
+  cityGroup.add(group);
+}
+
+/* =========================
+   台式建築立面
+========================= */
+
+function buildBuildings(){
+
+  wallBounds=[];
+  const facades=[];
+
+  const directions=[
+    {dx:0,dz:-1,side:0},
+    {dx:1,dz:0,side:1},
+    {dx:0,dz:1,side:2},
+    {dx:-1,dz:0,side:3}
+  ];
+
+  for(let z=0;z<N;z++){
+    for(let x=0;x<N;x++){
+
+      const c=cells[z][x];
+
+      directions.forEach(d=>{
+
+        if(!c.walls[d.side])return;
+        if(d.side===1&&x!==N-1)return;
+        if(d.side===2&&z!==N-1)return;
+
+        const bx=wx(x)+d.dx*CELL/2;
+        const bz=wz(z)+d.dz*CELL/2;
+        const h=rand(8,12.5);
+        const horizontal=d.side===0||d.side===2;
+        const startOpen=horizontal?!c.walls[3]:!c.walls[0];
+        const endOpen=horizontal?!c.walls[1]:!c.walls[2];
+        const startInset=startOpen?WALL_T/2:0;
+        const endInset=endOpen?WALL_T/2:0;
+        const length=CELL-startInset-endInset;
+        const alongOffset=(endInset-startInset)/2;
+
+        facades.push({
+          x:bx+(horizontal?alongOffset:0),
+          z:bz+(horizontal?0:alongOffset),
+          h,length,
+          side:d.side,
+          material:Math.floor(rand(0,6))
+        });
+
+        if(horizontal){
+          wallBounds.push({
+            minX:bx-CELL/2,
+            maxX:bx+CELL/2,
+            minZ:bz-WALL_T/2,maxZ:bz+WALL_T/2
+          });
+        }else{
+          wallBounds.push({
+            minX:bx-WALL_T/2,maxX:bx+WALL_T/2,
+            minZ:bz-CELL/2,
+            maxZ:bz+CELL/2
+          });
+        }
+      });
+    }
+  }
+
+  const geos=[
+    new THREE.BoxGeometry(CELL,1,WALL_T),
+    new THREE.BoxGeometry(WALL_T,1,CELL)
+  ];
+
+  const groups=[[],[]];
+
+  facades.forEach(f=>{
+    groups[(f.side===0||f.side===2)?0:1].push(f);
+  });
+
+  groups.forEach((list,type)=>{
+
+    if(!list.length)return;
+
+    const mesh=new THREE.InstancedMesh(
+      geos[type],
+      new THREE.MeshStandardMaterial({color:0xffffff,roughness:.92}),
+      list.length
+    );
+
+    const dummy=new THREE.Object3D();
+
+    list.forEach((f,i)=>{
+      dummy.position.set(f.x,f.h/2,f.z);
+      const horizontal=type===0;
+      dummy.scale.set(
+        horizontal?f.length/CELL:1,
+        f.h,
+        horizontal?1:f.length/CELL
+      );
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i,dummy.matrix);
+      mesh.setColorAt(i,new THREE.Color([
+        0xb58d94,0x827078,0xe3c5b2,
+        0xa99a91,0x8d8580,0xc5b8aa
+      ][f.material]));
+    });
+
+    mesh.instanceMatrix.needsUpdate=true;
+    if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;
+
+    mesh.castShadow=true;
+    mesh.receiveShadow=true;
+    cityGroup.add(mesh);
+  });
+
+  buildFacadeDetails(facades);
+}
+
+function buildFacadeDetails(facades){
+
+  const windowMat=new THREE.MeshStandardMaterial({
+    color:0x647986,
+    roughness:.3,
+    metalness:.12,
+    emissive:0x253139,
+    emissiveIntensity:.28
+  });
+  const frameMat=mat(0xe0d9cc);
+  const darkMat=mat(0x494744);
+  const ironMat=mat(0x474b4d);
+  const shutterMat=mat(0x888681);
+
+  const tileColors=[
+    0xc8b9a8,0xaaa49a,0xd5c9b8,
+    0xb9aaa0,0x9caaa4,0xc4b5a7
+  ];
+
+  facades.forEach((f,index)=>{
+
+    const horizontal=f.side===0||f.side===2;
+
+    const nx=f.side===1?-1:f.side===3?1:0;
+    const nz=f.side===0?1:f.side===2?-1:0;
+
+    const shop=shops[Math.floor(rand(0,shops.length))];
+
+    addBox(
+      cityGroup,
+      f.x+nx*.29,1.8,f.z+nz*.29,
+      horizontal?2.9:.12,
+      3.6,
+      horizontal?.12:2.9,
+      mat(tileColors[index%tileColors.length])
+    );
+
+    const sx=f.x+nx*.34;
+    const sz=f.z+nz*.34;
+
+    addBox(
+      cityGroup,sx,1.35,sz,
+      horizontal?2.15:.1,
+      2.15,
+      horizontal?.1:2.15,
+      darkMat
+    );
+
+    addBox(
+      cityGroup,
+      sx,1.4,
+      sz+(horizontal?nz*.07:nx*.07),
+      horizontal?1.86:.07,
+      1.78,
+      horizontal?.07:1.86,
+      windowMat
+    );
+
+    if(index%4===0){
+
+      addBox(
+        cityGroup,
+        sx+nx*.12,1.35,
+        sz+nz*.12,
+        horizontal?1.8:.13,
+        2.1,
+        horizontal?.13:1.8,
+        shutterMat
+      );
+
+      for(let k=0;k<10;k++){
+        addBox(
+          cityGroup,
+          sx+nx*.2,.45+k*.19,
+          sz+nz*.2,
+          horizontal?1.75:.035,
+          .025,
+          horizontal?.035:1.75,
+          ironMat
+        );
+      }
+    }
+
+    if(index%2===0){
+      createAwning(
+        f.x+nx*.32,2.65,f.z+nz*.32,
+        f.side,
+        [0x9b514d,0x47746d,0xc49b58,0x6d7085][index%4]
+      );
+    }
+
+    if(index%2===0){
+      createHorizontalSign(
+        f.x+nx*.42,3.45,f.z+nz*.42,
+        f.side,shop
+      );
+    }
+
+    if(index%4===0){
+      createVerticalSign(
+        f.x+nx*.45,4.65,f.z+nz*.45,
+        f.side,shop
+      );
+    }
+
+    for(let row=0;row<2;row++){
+      const y=5.2+row*2.35;
+
+      for(let col=0;col<2;col++){
+
+        const along=(col-.5)*1.85;
+        const x=f.x+(horizontal?along:nx*.32);
+        const z=f.z+(horizontal?nz*.32:along);
+
+        addBox(
+          cityGroup,x,y,z,
+          horizontal?1.05:.13,
+          1.25,
+          horizontal?.13:1.05,
+          frameMat
+        );
+
+        addBox(
+          cityGroup,
+          x,y,
+          z+(horizontal?nz*.09:nx*.09),
+          horizontal?.88:.06,
+          1.04,
+          horizontal?.06:.88,
+          windowMat
+        );
+
+        if(index%3!==1){
+
+          for(let bar=-3;bar<=3;bar++){
+            const offset=bar*.125;
+
+            addBox(
+              cityGroup,
+              x+(horizontal?offset:0),
+              y,
+              z+(horizontal?0:offset),
+              horizontal?.045:.065,
+              1.4,
+              horizontal?.065:.045,
+              ironMat
+            );
+          }
+
+          addBox(
+            cityGroup,x,y-.66,
+            z+(horizontal?nz*.13:nx*.13),
+            horizontal?1.15:.1,
+            .055,
+            horizontal?.1:1.15,
+            ironMat
+          );
+
+          addBox(
+            cityGroup,x,y+.66,
+            z+(horizontal?nz*.13:nx*.13),
+            horizontal?1.15:.1,
+            .055,
+            horizontal?.1:1.15,
+            ironMat
+          );
+        }
+
+        addBox(
+          cityGroup,x,y-.7,z,
+          horizontal?1.3:.25,
+          .13,
+          horizontal?.25:1.3,
+          frameMat
+        );
+      }
+    }
+
+    if(index%3===0){
+
+      const bx=f.x+nx*.55;
+      const bz=f.z+nz*.55;
+
+      addBox(
+        cityGroup,bx,4.35,bz,
+        horizontal?2.5:.9,.16,
+        horizontal?.9:2.5,
+        mat(0x9f998e)
+      );
+
+      for(let k=-2;k<=2;k++){
+        addBox(
+          cityGroup,
+          bx+(horizontal?k*.45:0),
+          4.85,
+          bz+(horizontal?0:k*.45),
+          horizontal?.045:.06,
+          .85,
+          horizontal?.06:.045,
+          ironMat
+        );
+      }
+    }
+
+    if(index%2===0){
+
+      const ax=f.x+nx*.48;
+      const az=f.z+nz*.48;
+
+      addBox(
+        cityGroup,
+        ax+(horizontal?1.05:0),
+        5.15,
+        az+(horizontal?0:1.05),
+        horizontal?.75:.42,
+        .55,
+        horizontal?.42:.75,
+        mat(0xd0cec6)
+      );
+
+      addBox(
+        cityGroup,
+        ax+(horizontal?1.05:nx*.12),
+        5.1,
+        az+(horizontal?nz*.12:1.05),
+        horizontal?.48:.04,
+        .27,
+        horizontal?.04:.48,
+        darkMat
+      );
+    }
+
+    if(index%7===0){
+
+      const tank=addCylinder(
+        cityGroup,
+        f.x+rand(-.6,.6),
+        f.h+.7,
+        f.z+rand(-.6,.6),
+        .48,.48,1.15,
+        mat(0x9ba8a7)
+      );
+
+      addBox(
+        cityGroup,tank.position.x,f.h+1.3,
+        tank.position.z,.9,.12,.9,
+        mat(0x777f80)
+      );
+    }
+
+    addBox(
+      cityGroup,
+      f.x,f.h+.15,f.z,
+      horizontal?f.length:.5,.35,
+      horizontal?.5:f.length,
+      mat(0xaaa49c)
+    );
+  });
+}
+
+/* =========================
+   斑馬線
+========================= */
+
+function buildCrossings(){
+
+  const white=mat(0xe8e5db);
+  const crossings=[];
+
+  for(let z=0;z<N;z++){
+    for(let x=0;x<N;x++){
+
+      const c=cells[z][x];
+      const count=c.walls.filter(v=>!v).length;
+
+      if(count<3)continue;
+
+      const px=wx(x),pz=wz(z);
+      const openSides=[0,1,2,3].filter(side=>!c.walls[side]);
+      const throughAxes=[[0,2],[1,3]].filter(axis=>
+        axis.every(side=>openSides.includes(side))
+      );
+      if(!throughAxes.length)continue;
+      const axis=throughAxes[(x+z)%throughAxes.length];
+      const centers=axis.map(side=>{
+        const offsets=[
+          {x:0,z:-1},
+          {x:1,z:0},
+          {x:0,z:1},
+          {x:-1,z:0}
+        ];
+        return{
+          side,
+          x:px+offsets[side].x*1.35,
+          z:pz+offsets[side].z*1.35
+        };
+      });
+
+      const tooClose=crossings.some(existing=>
+        centers.some(center=>
+          Math.hypot(center.x-existing.x,center.z-existing.z)<3.2
+        )
+      );
+      if(tooClose)continue;
+
+      centers.forEach(center=>{
+        const {side}=center;
+        crossings.push(center);
+
+        const alongX=side===1||side===3;
+        const direction=(side===0||side===3)?-1:1;
+
+        for(let stripe=0;stripe<5;stripe++){
+          const distance=-.9+stripe*.45;
+          const sx=center.x+(alongX?direction*distance:0);
+          const sz=center.z+(alongX?0:direction*distance);
+
+          addBox(
+            cityGroup,
+            sx,.025,sz,
+            alongX?.24:2.8,
+            .025,
+            alongX?2.8:.24,
+            white
+          );
+        }
+      });
+    }
+  }
+}
+
+/* =========================
+   機車模型
+========================= */
+
+function createScooter(x,z,rotation,color){
+
+  const g=new THREE.Group();
+  const body=mat(color,.48);
+  const black=mat(0x252629,.65);
+  const rubber=mat(0x171819);
+  const metal=mat(0x999b99,.4);
+
+  addBox(g,0,.67,0,.52,.53,1.28,body);
+  addBox(g,0,.83,-.48,.55,.67,.48,body);
+
+  addBox(
+    g,0,.92,-.73,.32,.2,.08,
+    new THREE.MeshStandardMaterial({
+      color:0xfff1cf,emissive:0x776044
+    })
+  );
+
+  addBox(g,0,.63,.68,.3,.18,.08,mat(0xc7443f));
+  addBox(g,0,.42,-.02,.48,.12,.55,black);
+  addBox(g,0,1.02,.28,.46,.2,.72,black);
+  addBox(g,0,1.14,.63,.58,.08,.12,metal);
+
+  for(const side of [-1,1]){
+
+    const arm=new THREE.Mesh(
+      new THREE.CylinderGeometry(.025,.025,.48,6),
+      metal
+    );
+
+    arm.position.set(side*.29,1.24,-.48);
+    arm.rotation.z=side*.45;
+    g.add(arm);
+
+    const mirror=new THREE.Mesh(
+      new THREE.SphereGeometry(.105,8,7),
+      black
+    );
+
+    mirror.scale.set(1,.65,.35);
+    mirror.position.set(side*.4,1.43,-.53);
+    g.add(mirror);
+  }
+
+  for(const p of [-.55,.58]){
+
+    const wheel=new THREE.Mesh(
+      new THREE.TorusGeometry(.28,.085,9,18),
+      rubber
+    );
+
+    wheel.rotation.y=Math.PI/2;
+    wheel.position.set(0,.3,p);
+    g.add(wheel);
+
+    const rim=new THREE.Mesh(
+      new THREE.TorusGeometry(.16,.025,6,14),
+      metal
+    );
+
+    rim.rotation.y=Math.PI/2;
+    rim.position.set(0,.3,p);
+    g.add(rim);
+  }
+
+  const exhaust=new THREE.Mesh(
+    new THREE.CylinderGeometry(.065,.08,.55,8),
+    metal
+  );
+
+  exhaust.rotation.x=Math.PI/2;
+  exhaust.position.set(.3,.42,.45);
+  g.add(exhaust);
+
+  g.position.set(x,0,z);
+  g.rotation.y=rotation;
+
+  g.traverse(o=>{
+    if(o.isMesh){
+      o.castShadow=true;
+      o.receiveShadow=true;
+    }
+  });
+
+  cityGroup.add(g);
+
+  // 機車模型長軸沿 Z，依旋轉角度計算碰撞範圍
+  addObstacleRotatedBox(x,z,1.05,1.55,rotation);
+}
+
+/* =========================
+   汽車模型
+========================= */
+
+function createCar(x,z,rotation,type="car"){
+
+  const g=new THREE.Group();
+  const isVan=type==="van";
+  const isTaxi=type==="taxi";
+
+  const bodyColor=isTaxi?0xe8c64e:
+    isVan?0xd9d8d2:
+    [0x454c56,0x8c969c,0x6d7779,0x9c554e,0xe0dfd7][Math.floor(rand(0,5))];
+
+  const body=mat(bodyColor,.42);
+  const glass=new THREE.MeshStandardMaterial({
+    color:0x263b49,
+    metalness:.25,
+    roughness:.2
+  });
+  const rubber=mat(0x18191b,.9);
+  const rim=mat(0xb6b9b8,.35);
+
+  addBox(g,0,.65,0,1.75,.55,isVan?3.9:3.55,body);
+  addBox(g,0,.96,-1.18,1.65,.3,.9,body);
+  addBox(g,0,1.43,.1,1.48,.68,isVan?2.35:1.9,body);
+
+  addBox(g,0,1.35,-.87,1.38,.48,.08,glass);
+  addBox(g,0,1.35,1.1,1.35,.43,.08,glass);
+
+  for(const side of [-1,1]){
+
+    addBox(
+      g,side*.77,1.39,.05,
+      .07,.45,isVan?2.2:1.7,glass
+    );
+
+    for(const p of [-.25,.65]){
+      addBox(g,side*.89,1.02,p,.035,.07,.22,mat(0xc4c5c2));
+    }
+
+    addBox(g,side*.93,1.36,-.82,.2,.13,.23,mat(0x282b2e));
+  }
+
+  addBox(g,0,.48,-1.82,1.72,.2,.12,mat(0x35383a));
+  addBox(g,0,.48,1.82,1.72,.2,.12,mat(0x35383a));
+
+  for(const side of [-1,1]){
+
+    addBox(
+      g,side*.62,.84,-1.82,
+      .35,.2,.08,
+      new THREE.MeshStandardMaterial({
+        color:0xfff2d2,emissive:0x6d6042
+      })
+    );
+
+    addBox(g,side*.62,.83,1.82,.3,.17,.08,mat(0xb83e39));
+  }
+
+  for(const side of [-1,1]){
+    for(const p of [-1.12,1.12]){
+
+      const wheel=new THREE.Mesh(
+        new THREE.CylinderGeometry(.36,.36,.2,16),
+        rubber
+      );
+
+      wheel.rotation.z=Math.PI/2;
+      wheel.position.set(side*.88,.42,p);
+      g.add(wheel);
+
+      const wheelRim=new THREE.Mesh(
+        new THREE.CylinderGeometry(.19,.19,.215,12),
+        rim
+      );
+
+      wheelRim.rotation.z=Math.PI/2;
+      wheelRim.position.set(side*.89,.42,p);
+      g.add(wheelRim);
+    }
+  }
+
+  if(isTaxi){
+    addBox(g,0,1.82,0,.55,.2,.3,mat(0xf4e5a6));
+    addBox(g,0,1.94,0,.42,.08,.22,mat(0xfaf5d7));
+  }
+
+  addBox(g,0,.59,-1.9,.42,.16,.035,mat(0xf0eee5));
+
+  g.position.set(x,0,z);
+  g.rotation.y=rotation;
+
+  g.traverse(o=>{
+    if(o.isMesh){
+      o.castShadow=true;
+      o.receiveShadow=true;
+    }
+  });
+
+  cityGroup.add(g);
+
+  const length=isVan?4.3:4.1;
+  const width=2.2;
+
+  // 汽車碰撞範圍會隨旋轉角度調整
+  addObstacleRotatedBox(x,z,width,length,rotation);
+}
+
+/* =========================
+   安全生成街道家具
+========================= */
+
+function buildStreetFurniture(){
+
+  const poleMat=mat(0x45464a);
+  const trunkMat=mat(0x665246);
+  const benchMat=mat(0x8b6956);
+  const metalMat=mat(0x55585b);
+
+  // 路燈固定在街角，避免遮住店面立面
+  for(let i=0;i<85;i++){
+
+    const pos=findCornerPlacement(.45,.45,220);
+
+    if(!pos)continue;
+
+    const {x,z}=pos;
+
+    addCylinder(cityGroup,x,3.25,z,.065,.09,6.5,poleMat);
+    addBox(cityGroup,x+.43,6.2,z,.86,.075,.075,poleMat);
+    addBox(cityGroup,x+.82,6.02,z,.08,.42,.08,poleMat);
+
+    addBox(
+      cityGroup,x+.82,5.78,z,
+      .3,.16,.34,
+      new THREE.MeshStandardMaterial({
+        color:0xffe9bd,
+        emissive:0xffc96e,
+        emissiveIntensity:.8
+      })
+    );
+
+    addObstacleCircle(x,z,.28);
+  }
+
+  // 行道樹
+  // 樹木固定在街角，保留店面招牌與窗戶的視線
+  for(let i=0;i<95;i++){
+
+    const pos=findCornerPlacement(.9,.9,240);
+
+    if(!pos)continue;
+
+    const {x,z}=pos;
+    const leafMat=mat([0x55775b,0x617d59,0x4f7055][i%3]);
+
+    addBox(
+      cityGroup,x,.2,z,.82,.38,.82,
+      mat(0x8d8980)
+    );
+
+    const trunk=new THREE.Mesh(
+      new THREE.CylinderGeometry(.14,.22,2.5,7),
+      trunkMat
+    );
+
+    trunk.position.set(x,1.25,z);
+    trunk.castShadow=true;
+    cityGroup.add(trunk);
+
+    const crown=new THREE.Mesh(
+      new THREE.SphereGeometry(.9,9,8),
+      leafMat
+    );
+
+    crown.position.set(x,2.9,z);
+    crown.scale.y=1.25;
+    crown.castShadow=true;
+    cityGroup.add(crown);
+
+    for(const [dx,dz,scale] of [
+      [-.48,.08,.72],[.45,-.12,.76],[.05,.42,.68]
+    ]){
+      const cluster=new THREE.Mesh(
+        new THREE.SphereGeometry(.68,8,7),
+        leafMat
+      );
+      cluster.position.set(x+dx,2.9,z+dz);
+      cluster.scale.set(scale,scale*1.12,scale);
+      cluster.castShadow=true;
+      cityGroup.add(cluster);
+    }
+
+    addObstacleCircle(x,z,.42);
+  }
+
+  // 垃圾桶
+  for(let i=0;i<45;i++){
+
+    const pos=findWallPlacement(.62,.62,120);
+
+    if(!pos)continue;
+
+    const {x,z}=pos;
+
+    addBox(cityGroup,x,.55,z,.48,1.1,.48,mat(0x64736c));
+    addBox(cityGroup,x,.12,z,.53,.1,.53,mat(0x3e4543));
+
+    addObstacleBox(x,z,.62,.62);
+  }
+
+  // 長椅
+  // 依照所在牆面方向旋轉，讓長椅貼牆排列
+  for(let i=0;i<22;i++){
+
+    const pos=findWallPlacement(1.7,.6,160);
+
+    if(!pos)continue;
+
+    const {x,z,rotation}=pos;
+
+    const bench=new THREE.Group();
+    bench.position.set(x,0,z);
+    bench.rotation.y=rotation;
+
+    addBox(bench,0,.55,0,1.7,.16,.6,benchMat);
+    addBox(bench,0,.95,.25,1.7,.75,.12,benchMat);
+
+    for(const k of [-1,1]){
+      addBox(bench,k*.65,.25,0,.09,.55,.09,metalMat);
+    }
+
+    cityGroup.add(bench);
+
+    addObstacleRotatedBox(x,z,1.9,.9,rotation);
+  }
+
+  // 機車
+  const scooterColors=[
+    0x242629,0xb9b6ad,0x8c6c72,
+    0x536a77,0x9c423f,0xd5d0c5,0x4c514c
+  ];
+
+  for(let i=0;i<70;i++){
+
+    const pos=findWallPlacement(1.05,1.55,180);
+
+    if(!pos)continue;
+
+    createScooter(
+      pos.x,
+      pos.z,
+      pos.rotation,
+      scooterColors[i%scooterColors.length]
+    );
+  }
+
+  // 一般汽車
+  // 只允許停在只有一個開口的死巷格
+  for(let i=0;i<16;i++){
+
+    const pos=findCarPlacement(2.2,4.1);
+
+    if(!pos)continue;
+
+    createCar(
+      pos.x,
+      pos.z,
+      pos.rotation,
+      "car"
+    );
+  }
+
+  // 計程車
+  for(let i=0;i<6;i++){
+
+    const pos=findCarPlacement(2.2,4.1);
+
+    if(!pos)continue;
+
+    createCar(
+      pos.x,
+      pos.z,
+      pos.rotation,
+      "taxi"
+    );
+  }
+
+  // 廂型車
+  for(let i=0;i<6;i++){
+
+    const pos=findCarPlacement(2.2,4.3);
+
+    if(!pos)continue;
+
+    createCar(
+      pos.x,
+      pos.z,
+      pos.rotation,
+      "van"
+    );
+  }
+}
+
+/* =========================
+   電線
+========================= */
+
+function buildWires(){
+
+  const wireMat=new THREE.LineBasicMaterial({
+    color:0x25252a,
+    transparent:true,
+    opacity:.8
+  });
+
+  for(let i=0;i<45;i++){
+
+    const x1=rand(-N*CELL/2,N*CELL/2);
+    const z1=rand(-N*CELL/2,N*CELL/2);
+    const x2=x1+rand(-12,12);
+    const z2=z1+rand(-12,12);
+
+    const points=[
+      new THREE.Vector3(x1,6.5,z1),
+      new THREE.Vector3((x1+x2)/2,5.9,(z1+z2)/2),
+      new THREE.Vector3(x2,6.5,z2)
+    ];
+
+    cityGroup.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      wireMat
+    ));
+  }
+}
+
+/* =========================
+   地板發光入口與出口
+========================= */
+
+function createGroundMarker(x,z,label,isEntrance=false){
+
+  const group=new THREE.Group();
+  group.position.set(x,.035,z);
+
+  const pinkColor=isEntrance?0xffb8d0:0xff8fba;
+
+  const glow=new THREE.Mesh(
+    new THREE.CircleGeometry(1.55,48),
+    new THREE.MeshBasicMaterial({
+      color:pinkColor,
+      transparent:true,
+      opacity:.2,
+      side:THREE.DoubleSide,
+      depthWrite:false
+    })
+  );
+
+  glow.rotation.x=-Math.PI/2;
+  glow.position.y=.008;
+  group.add(glow);
+
+  const ring=new THREE.Mesh(
+    new THREE.TorusGeometry(1.25,.075,12,64),
+    new THREE.MeshBasicMaterial({
+      color:0xffd8e5,
+      transparent:true,
+      opacity:.98
+    })
+  );
+
+  ring.rotation.x=-Math.PI/2;
+  ring.position.y=.06;
+  group.add(ring);
+
+  const innerRing=new THREE.Mesh(
+    new THREE.TorusGeometry(.82,.035,8,48),
+    new THREE.MeshBasicMaterial({
+      color:0xffa9c7,
+      transparent:true,
+      opacity:.85
+    })
+  );
+
+  innerRing.rotation.x=-Math.PI/2;
+  innerRing.position.y=.065;
+  group.add(innerRing);
+
+  const canvas=document.createElement("canvas");
+  canvas.width=512;
+  canvas.height=128;
+
+  const ctx=canvas.getContext("2d");
+  ctx.clearRect(0,0,512,128);
+  ctx.fillStyle="#fff4f8";
+  ctx.font="bold 58px sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.shadowColor="#ff7eac";
+  ctx.shadowBlur=18;
+  ctx.fillText(label,256,64);
+
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+
+  const textPlane=new THREE.Mesh(
+    new THREE.PlaneGeometry(2.8,.7),
+    new THREE.MeshBasicMaterial({
+      map:texture,
+      transparent:true,
+      depthWrite:false,
+      side:THREE.DoubleSide
+    })
+  );
+
+  textPlane.rotation.x=-Math.PI/2;
+  textPlane.position.y=.075;
+  group.add(textPlane);
+
+  const center=new THREE.Mesh(
+    new THREE.CircleGeometry(.32,32),
+    new THREE.MeshBasicMaterial({
+      color:0xffdce8,
+      transparent:true,
+      opacity:.8,
+      side:THREE.DoubleSide
+    })
+  );
+
+  center.rotation.x=-Math.PI/2;
+  center.position.y=.07;
+  group.add(center);
+
+  cityGroup.add(group);
+
+  return{
+    group,
+    ring,
+    glow,
+    center,
+    phase:Math.random()*Math.PI*2
+  };
+}
+
+function buildEntrance(){
+
+  const sx=Math.floor(N/2);
+  const sz=N-1;
+
+  entranceRing=createGroundMarker(
+    wx(sx),
+    wz(sz),
+    "起點入口",
+    true
+  );
+}
+
+function buildExitPortals(){
+
+  exits.forEach((e,i)=>{
+
+    const marker=createGroundMarker(
+      e.worldX,
+      e.worldZ,
+      "出口 "+String(i+1).padStart(2,"0")
+    );
+
+    e.group=marker.group;
+    e.ring=marker.ring;
+    e.glow=marker.glow;
+    e.center=marker.center;
+    e.phase=marker.phase;
+  });
+}
+
+/* =========================
+   建立整張都市迷宮
+========================= */
+
+function disposeCity(){
+
+  if(!cityGroup)return;
+
+  scene.remove(cityGroup);
+
+  cityGroup.traverse(o=>{
+    if(o.geometry)o.geometry.dispose();
+
+    if(o.material){
+      if(Array.isArray(o.material)){
+        o.material.forEach(m=>m.dispose());
+      }else{
+        o.material.dispose();
+      }
+    }
+  });
+
+  cityGroup=null;
+  entranceRing=null;
+}
+
+function createCity(){
+
+  disposeCity();
+  clearCollisionData();
+
+  cityGroup=new THREE.Group();
+  scene.add(cityGroup);
+
+  cityGroup.add(new THREE.AmbientLight(0xffffff,.35));
+
+  buildGround();
+  buildBuildings();
+  buildCrossings();
+
+  // 建築牆壁建立完成後，才開始安全放置街道物件
+  buildStreetFurniture();
+
+  buildWires();
+  buildEntrance();
+  buildExitPortals();
+
+  const ground=new THREE.Mesh(
+    new THREE.PlaneGeometry(500,500),
+    mat(0x66645e)
+  );
+
+  ground.rotation.x=-Math.PI/2;
+  ground.position.y=-.43;
+  cityGroup.add(ground);
+}
+
+/* =========================
+   碰撞偵測
+========================= */
+
+function collidesWithBounds(x,z,bounds){
+
+  for(const b of bounds){
+
+    const closestX=Math.max(b.minX,Math.min(x,b.maxX));
+    const closestZ=Math.max(b.minZ,Math.min(z,b.maxZ));
+
+    const dx=x-closestX;
+    const dz=z-closestZ;
+
+    if(dx*dx+dz*dz<PLAYER_RADIUS*PLAYER_RADIUS){
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function canMove(x,z){
+
+  if(collidesWithBounds(x,z,wallBounds)){
+    return false;
+  }
+
+  if(collidesWithBounds(x,z,obstacleBounds)){
+    return false;
+  }
+
+  const half=N*CELL/2;
+
+  const outside=
+    x<-half||x>half||
+    z<-half||z>half;
+
+  if(outside){
+
+    return exits.some(e=>
+      Math.hypot(x-e.worldX,z-e.worldZ)<2.4
+    );
+  }
+
+  return true;
+}
+
+/* =========================
+   玩家移動
+========================= */
+
+function movePlayer(delta){
+
+  if(!controls.isLocked)return;
+
+  const speed=5.2;
+  const forward=new THREE.Vector3();
+
+  camera.getWorldDirection(forward);
+  forward.y=0;
+  forward.normalize();
+
+  const right=new THREE.Vector3(
+    -forward.z,0,forward.x
+  );
+
+  let dx=0,dz=0;
+
+  if(keys.KeyW){dx+=forward.x;dz+=forward.z}
+  if(keys.KeyS){dx-=forward.x;dz-=forward.z}
+  if(keys.KeyA){dx-=right.x;dz-=right.z}
+  if(keys.KeyD){dx+=right.x;dz+=right.z}
+
+  const length=Math.hypot(dx,dz);
+  if(!length)return;
+
+  dx=dx/length*speed*delta;
+  dz=dz/length*speed*delta;
+
+  const nx=camera.position.x+dx;
+  const nz=camera.position.z+dz;
+
+  if(canMove(nx,camera.position.z)){
+    camera.position.x=nx;
+  }
+
+  if(canMove(camera.position.x,nz)){
+    camera.position.z=nz;
+  }
+}
+
+/* =========================
+   出口觸發
+========================= */
+
+function checkExit(){
+
+  for(const e of exits){
+
+    if(e.triggered)continue;
+
+    const d=Math.hypot(
+      camera.position.x-e.worldX,
+      camera.position.z-e.worldZ
+    );
+
+    if(d<1.35){
+      e.triggered=true;
+      showResult(e);
+      return;
+    }
+  }
+}
+
+function showResult(exit){
+
+  gameState="result";
+  controls.unlock();
+
+  $("hud").style.display="none";
+  $("resultPlace").textContent=exit.place.name;
+  $("resultDesc").textContent=exit.place.desc;
+  $("resultOverlay").style.display="flex";
+}
+
+/* =========================
+   開始遊戲
+========================= */
+
+function startGame(){
+
+  generateMaze();
+  generateExits();
+  createCity();
+
+  const sx=Math.floor(N/2);
+  const sz=N-1;
+
+  camera.position.set(wx(sx),PLAYER_HEIGHT,wz(sz));
+  camera.rotation.set(0,0,0);
+
+  startTime=performance.now();
+  keys={};
+  gameState="playing";
+
+  $("timer").textContent="00:00";
+  $("startOverlay").style.display="none";
+  $("pauseOverlay").style.display="none";
+  $("resultOverlay").style.display="none";
+  $("hud").style.display="block";
+
+  controls.lock();
+}
+
+/* =========================
+   暫停與返回
+========================= */
+
+controls.addEventListener("unlock",()=>{
+
+  if(gameState==="playing"){
+    gameState="paused";
+    $("pauseOverlay").style.display="flex";
+  }
+});
+
+controls.addEventListener("lock",()=>{
+
+  if(gameState==="playing"){
+    $("pauseOverlay").style.display="none";
+    $("hud").style.display="block";
+  }
+});
+
+function goHome(){
+
+  gameState="menu";
+  controls.unlock();
+
+  $("hud").style.display="none";
+  $("pauseOverlay").style.display="none";
+  $("resultOverlay").style.display="none";
+  $("startOverlay").style.display="flex";
+
+  disposeCity();
+  clearCollisionData();
+}
+
+/* =========================
+   鍵盤控制
+========================= */
+
+window.addEventListener("keydown",e=>{
+  keys[e.code]=true;
+});
+
+window.addEventListener("keyup",e=>{
+  keys[e.code]=false;
+});
+
+window.addEventListener("blur",()=>{
+  keys={};
+});
+
+/* =========================
+   UI
+========================= */
+
+$("startBtn").onclick=startGame;
+
+$("resumeBtn").onclick=()=>{
+  gameState="playing";
+  controls.lock();
+};
+
+$("restartBtn").onclick=startGame;
+$("homeBtn").onclick=goHome;
+$("againBtn").onclick=startGame;
+$("resultHomeBtn").onclick=goHome;
+
+/* =========================
+   發光動畫
+========================= */
+
+function animateMarkers(delta,time){
+
+  const all=[];
+
+  if(entranceRing)all.push(entranceRing);
+  exits.forEach(e=>all.push(e));
+
+  all.forEach(marker=>{
+
+    const pulse=.5+.5*Math.sin(time*2.4+marker.phase);
+
+    marker.ring.material.opacity=.65+pulse*.35;
+    marker.ring.scale.setScalar(1+pulse*.07);
+
+    marker.glow.material.opacity=.12+pulse*.16;
+    marker.glow.scale.setScalar(1+pulse*.08);
+
+    marker.center.material.opacity=.45+pulse*.45;
+  });
+}
+
+/* =========================
+   動畫
+========================= */
+
+function animate(){
+
+  requestAnimationFrame(animate);
+
+  const delta=Math.min(clock.getDelta(),.05);
+  const elapsed=performance.now()*.001;
+
+  if(gameState==="playing"){
+
+    movePlayer(delta);
+    checkExit();
+
+    const t=Math.floor((performance.now()-startTime)/1000);
+
+    $("timer").textContent=
+      String(Math.floor(t/60)).padStart(2,"0")+
+      ":"+
+      String(t%60).padStart(2,"0");
+  }
+
+  if(cityGroup){
+    animateMarkers(delta,elapsed);
+  }
+
+  renderer.render(scene,camera);
+}
+
+animate();
+
+/* =========================
+   畫面尺寸
+========================= */
+
+window.addEventListener("resize",()=>{
+
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+});
+</script>
+</body>
+</html>

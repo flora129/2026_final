@@ -121,14 +121,17 @@ body::after {
     font-weight: bold;
 }
 
-/* 中獎彈出視窗 */
+/* ===== 中獎彈出視窗 ===== */
+
 .result-overlay {
     position: fixed;
     inset: 0;
     z-index: 1000;
+
     display: none;
     justify-content: center;
     align-items: center;
+
     padding: 20px;
     background: rgba(115, 65, 83, 0.22);
     backdrop-filter: blur(4px);
@@ -140,7 +143,6 @@ body::after {
     animation: fadeIn 0.3s ease;
 }
 
-/* 橫向長方形 */
 .result-box {
     position: relative;
     width: min(88%, 480px);
@@ -212,6 +214,164 @@ body::after {
     }
 }
 
+/* ===== 新手教學 ===== */
+
+.tutorial-card {
+    position: fixed;
+    z-index: 2000;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: min(92%, 460px);
+    padding: 23px 22px;
+
+    background: linear-gradient(145deg, #fff, #fff1f5);
+    border: 3px solid #f3b5c8;
+    border-radius: 23px;
+    box-shadow: 0 8px 25px rgba(166,91,119,.2);
+
+    text-align: center;
+    color: #896174;
+}
+
+.tutorial-card.hidden {
+    display: none;
+}
+
+.tutorial-step {
+    color: #d77b9c;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    margin-bottom: 9px;
+}
+
+.tutorial-title {
+    color: #bd6688;
+    font-size: 21px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.tutorial-description {
+    color: #896174;
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-line;
+}
+
+.tutorial-progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 9px;
+    margin: 17px 0;
+}
+
+.progress-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #efd2dc;
+}
+
+.progress-dot.active {
+    background: #df7e9f;
+    transform: scale(1.25);
+}
+
+/* 教學按鈕排列 */
+.tutorial-actions {
+    display: flex;
+    gap: 9px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* 開始教學按鈕 */
+.tutorial-button {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 10px;
+    color: white;
+    background: linear-gradient(135deg, #f58eae, #e56d94);
+    font-size: 14px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 3px 7px rgba(217,78,121,.2);
+    transition: .2s;
+}
+
+.tutorial-button:hover {
+    filter: brightness(1.05);
+}
+
+.tutorial-button:active {
+    transform: scale(.97);
+}
+
+.tutorial-button:disabled {
+    opacity: .55;
+    cursor: default;
+}
+
+/* 跳過教學按鈕 */
+.tutorial-skip-button {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    border-radius: 30px;
+    padding: 12px 10px;
+    color: white;
+    background: linear-gradient(135deg, #91d6a1, #5caf73);
+    font-size: 14px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 3px 7px rgba(76,160,100,.25);
+    transition: .2s;
+}
+
+.tutorial-skip-button:hover {
+    filter: brightness(1.05);
+}
+
+.tutorial-skip-button:active {
+    transform: scale(.97);
+}
+
+.tutorial-hint {
+    margin-top: 12px;
+    color: #c18b9e;
+    font-size: 12px;
+}
+
+/* 教學高亮 */
+#canvas.tutorial-highlight {
+    filter: drop-shadow(0 0 9px #ed83a8);
+}
+
+#spinBtn.tutorial-highlight {
+    position: relative;
+    z-index: 1001;
+    outline: 4px solid #f3a3bd;
+    outline-offset: 7px;
+    animation: tutorialPulse 1.2s infinite;
+}
+
+@keyframes tutorialPulse {
+    0%, 100% {
+        outline-color: rgba(243,163,189,.45);
+    }
+    50% {
+        outline-color: rgba(243,163,189,1);
+    }
+}
+
 @media (max-width: 480px) {
     #spinBtn {
         width: 90%;
@@ -224,5 +384,10 @@ body::after {
 
     .result-text {
         font-size: 27px;
+    }
+
+    .tutorial-card {
+        top: 12px;
+        padding: 18px 16px;
     }
 }

@@ -81,7 +81,6 @@ const maxPullAngle = 30;
 
 let tutorialActive = false;
 let tutorialStage = 0;
-const tutorialLauncher = document.getElementById("tutorialLauncher");
 let lastResults = [];
 
 /* ===== SVG 顯示 ===== */
@@ -271,45 +270,6 @@ function showTutorial() {
 }
 
 /* ===== 教學按鈕 ===== */
-
-tutorialButton.addEventListener("click", function() {
-
-    if (tutorialStage === 0) {
-
-        tutorialStage = 1;
-
-    } else if (tutorialStage === 1) {
-
-        tutorialStage = 2;
-
-    } else if (tutorialStage === 4) {
-
-        tutorialStage = 5;
-
-    } else if (tutorialStage === 5) {
-
-        tutorialActive = false;
-
-        clearHighlight();
-
-        tutorialCard.classList.add("hidden");
-
-        msg.innerText = "READY TO PLAY";
-        msg.classList.remove("win");
-
-        return;
-    }
-
-    tutorialButton.style.display = "block";
-
-    showTutorial();
-});
-
-tutorialLauncher.addEventListener("click", function() {
-    tutorialActive = true;
-    tutorialStage = 0;
-    showTutorial();
-});
 
 /* ===== 開始拉霸 ===== */
 

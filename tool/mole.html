@@ -1,0 +1,1143 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="../extended-notebook.css">
+<script src="../extended-notebook.js"></script>
+<title>PickMe｜可愛打地鼠選擇器</title>
+
+<style>
+*{box-sizing:border-box}
+
+:root{
+    --pink:#f3a5bd;
+    --deep:#d96f96;
+    --light:#ffe8ef;
+    --cream:#fff9f4;
+    --brown:#795b52;
+    --dark:#59434a;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:
+        radial-gradient(circle at 15% 15%,#fff 0 3px,transparent 4px),
+        radial-gradient(circle at 85% 30%,#fff 0 4px,transparent 5px),
+        linear-gradient(145deg,#fff5f7,#ffe5ed);
+    background-size:80px 80px,110px 110px,auto;
+    font-family:"Microsoft JhengHei",sans-serif;
+    color:var(--dark);
+}
+
+button{font-family:inherit}
+
+.page{
+    width:min(950px,94%);
+    margin:auto;
+    padding:35px 0 55px;
+}
+
+.header{
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.header h1{
+    font-size:32px;
+    color:#c85e83;
+    margin:0 0 9px;
+    letter-spacing:2px;
+}
+
+.header p{
+    color:#a98792;
+    font-size:14px;
+    margin:0;
+}
+
+/* 遊戲資訊 */
+
+.info{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    margin-bottom:20px;
+}
+
+.info-card{
+    background:#fff;
+    border:2px solid #f9d5e0;
+    border-radius:17px;
+    padding:12px 28px;
+    min-width:125px;
+    text-align:center;
+    box-shadow:0 4px 12px #d98ca21c;
+}
+
+.info-label{
+    font-size:12px;
+    color:#b38d9a;
+    margin-bottom:4px;
+}
+
+.info-value{
+    font-size:27px;
+    font-weight:800;
+    color:#d56d91;
+}
+
+.info-value small{font-size:13px}
+
+/* 遊戲區 */
+
+.game-panel{
+    background:#fffaf7;
+    border:3px solid #fff;
+    border-radius:28px;
+    padding:24px;
+    box-shadow:0 12px 35px #ca829b24;
+}
+
+.game-tip{
+    text-align:center;
+    color:#ad8794;
+    font-size:14px;
+    margin-bottom:18px;
+}
+
+/* 地鼠洞 */
+
+.hole-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:23px 20px;
+    max-width:610px;
+    margin:0 auto;
+}
+
+.hole{
+    height:145px;
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    overflow:hidden;
+    cursor:pointer;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+}
+
+.hole-shadow{
+    position:absolute;
+    bottom:5px;
+    width:90%;
+    height:43px;
+    background:#a87568;
+    border-radius:50%;
+    box-shadow:inset 0 7px 10px #68463e;
+    z-index:2;
+}
+
+.hole-rim{
+    position:absolute;
+    bottom:0;
+    width:100%;
+    height:29px;
+    background:linear-gradient(#d6a58e,#b77d68);
+    border-radius:50%;
+    z-index:4;
+    box-shadow:0 4px 4px #80574c35;
+}
+
+/* 地鼠 */
+
+.mole{
+    position:absolute;
+    bottom:17px;
+    width:108px;
+    height:110px;
+    z-index:3;
+    transform:translateY(115px);
+    transition:transform .15s cubic-bezier(.2,.8,.3,1);
+    cursor:pointer;
+    pointer-events:none;
+}
+
+.mole.show{
+    transform:translateY(0);
+    pointer-events:auto;
+}
+
+.mole.hit{
+    animation:dizzy .45s ease forwards;
+    pointer-events:none;
+}
+
+@keyframes dizzy{
+    0%{transform:translateY(0) rotate(0) scale(1)}
+    20%{transform:translateY(-22px) rotate(-18deg) scale(1.12)}
+    45%{transform:translateY(-17px) rotate(18deg) scale(1.08)}
+    70%{transform:translateY(-8px) rotate(-12deg) scale(.98)}
+    100%{transform:translateY(115px) rotate(0) scale(.8)}
+}
+
+/* 身體 */
+
+.mole-body{
+    position:absolute;
+    bottom:0;
+    left:5px;
+    width:98px;
+    height:91px;
+    background:linear-gradient(140deg,#b98c76,#89604f);
+    border-radius:49% 49% 42% 42%;
+    box-shadow:
+        inset 8px 5px 12px #ffffff38,
+        inset -8px -5px 12px #60423735,
+        0 4px 8px #69493d30;
+}
+
+/* 耳朵 */
+
+.ear{
+    position:absolute;
+    width:30px;
+    height:32px;
+    background:#a87965;
+    border-radius:50%;
+    top:3px;
+    z-index:0;
+    border:3px solid #936b59;
+}
+
+.ear:after{
+    content:"";
+    position:absolute;
+    width:14px;
+    height:17px;
+    background:#e9a9a8;
+    border-radius:50%;
+    top:5px;
+    left:5px;
+}
+
+.ear.left{left:10px}
+.ear.right{right:10px}
+
+/* 臉 */
+
+.face{
+    position:absolute;
+    top:27px;
+    left:14px;
+    width:80px;
+    height:61px;
+    background:#d4b09b;
+    border-radius:48% 48% 45% 45%;
+    z-index:2;
+}
+
+.eye{
+    position:absolute;
+    width:9px;
+    height:12px;
+    background:#46312e;
+    border-radius:50%;
+    top:19px;
+}
+
+.eye.left{left:19px}
+.eye.right{right:19px}
+
+.eye:after{
+    content:"";
+    position:absolute;
+    width:3px;
+    height:3px;
+    background:#fff;
+    border-radius:50%;
+    top:2px;
+    left:2px;
+}
+
+.nose{
+    position:absolute;
+    width:13px;
+    height:10px;
+    background:#e98e9e;
+    border-radius:50%;
+    top:32px;
+    left:34px;
+    z-index:3;
+    box-shadow:inset 0 2px 2px #ffffff65;
+}
+
+.mouth{
+    position:absolute;
+    top:42px;
+    left:37px;
+    width:7px;
+    height:5px;
+    border-bottom:2px solid #79534b;
+    border-radius:50%;
+    z-index:3;
+}
+
+.blush{
+    position:absolute;
+    width:14px;
+    height:8px;
+    background:#e88f9f;
+    opacity:.75;
+    border-radius:50%;
+    top:36px;
+}
+
+.blush.left{left:8px}
+.blush.right{right:8px}
+
+.hand{
+    position:absolute;
+    width:20px;
+    height:15px;
+    background:#c89e89;
+    border-radius:50%;
+    bottom:6px;
+    z-index:4;
+}
+
+.hand.left{
+    left:-7px;
+    transform:rotate(-25deg);
+}
+
+.hand.right{
+    right:-7px;
+    transform:rotate(25deg);
+}
+
+/* 暈眩星星 */
+
+.stars{
+    position:absolute;
+    top:-28px;
+    left:0;
+    width:100%;
+    height:40px;
+    display:none;
+    justify-content:center;
+    gap:7px;
+    font-size:23px;
+    z-index:10;
+    color:var(--flash);
+    filter:drop-shadow(0 0 7px var(--flash));
+}
+
+.mole.hit .stars{
+    display:flex;
+    animation:starSpin .45s ease;
+}
+
+@keyframes starSpin{
+    0%{opacity:0;transform:rotate(-40deg) scale(.2)}
+    40%{opacity:1;transform:rotate(15deg) scale(1.3)}
+    100%{opacity:0;transform:rotate(90deg) scale(.5)}
+}
+
+/* 閃光 */
+
+.flash{
+    position:absolute;
+    width:120px;
+    height:120px;
+    left:50%;
+    top:5px;
+    transform:translateX(-50%) scale(.2);
+    border-radius:50%;
+    background:radial-gradient(circle,var(--flash),transparent 70%);
+    opacity:0;
+    pointer-events:none;
+    z-index:1;
+}
+
+.mole.hit .flash{
+    animation:flashEffect .45s ease;
+}
+
+@keyframes flashEffect{
+    0%{opacity:0;transform:translateX(-50%) scale(.2)}
+    35%{opacity:.8;transform:translateX(-50%) scale(1.3)}
+    100%{opacity:0;transform:translateX(-50%) scale(1.7)}
+}
+
+/* 控制按鈕 */
+
+.controls{
+    display:flex;
+    justify-content:center;
+    gap:12px;
+    margin-top:25px;
+}
+
+.main-btn{
+    border:none;
+    background:linear-gradient(135deg,#f5a9c1,#d96e96);
+    color:white;
+    font-size:17px;
+    font-weight:800;
+    padding:14px 48px;
+    border-radius:50px;
+    cursor:pointer;
+    box-shadow:0 5px 12px #d77b9b50;
+    transition:.2s;
+}
+
+.main-btn:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 16px #d77b9b55;
+}
+
+.main-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+    transform:none;
+}
+
+/* 結果 */
+
+.result-overlay{
+    position:fixed;
+    inset:0;
+    background:#61455088;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+    padding:20px;
+    overflow-y:auto;
+}
+
+.result-overlay.active{
+    display:flex;
+    animation:fadeIn .3s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0}
+    to{opacity:1}
+}
+
+.result-card{
+    background:#fffaf8;
+    width:min(400px,100%);
+    max-height:90vh;
+    overflow-y:auto;
+    border-radius:30px;
+    padding:35px 25px;
+    text-align:center;
+    border:4px solid white;
+    box-shadow:0 15px 50px #51333e40;
+    animation:popIn .4s cubic-bezier(.2,.8,.3,1);
+}
+
+@keyframes popIn{
+    from{transform:scale(.7);opacity:0}
+    to{transform:scale(1);opacity:1}
+}
+
+.result-mole{
+    font-size:65px;
+    margin-bottom:10px;
+}
+
+.result-title{
+    font-size:22px;
+    color:#cb6689;
+    font-weight:800;
+}
+
+.result-subtitle{
+    font-size:13px;
+    color:#ad929d;
+    margin:8px 0 20px;
+}
+
+.winner{
+    background:linear-gradient(135deg,#ffe5ed,#fff0e8);
+    border-radius:18px;
+    padding:22px 12px;
+    margin-bottom:20px;
+}
+
+.winner-label{
+    font-size:13px;
+    color:#b78c9b;
+}
+
+.winner-name{
+    font-size:25px;
+    font-weight:900;
+    color:#cb6689;
+    margin:12px 0;
+    word-break:break-word;
+}
+
+.winner-item{
+    padding:9px 5px;
+    border-bottom:1px solid #f4d4df;
+}
+
+.winner-item:last-child{border-bottom:none}
+
+.winner-count{
+    font-size:13px;
+    color:#ad8794;
+}
+
+.result-btn{
+    border:none;
+    background:#e88eaa;
+    color:white;
+    padding:13px 38px;
+    border-radius:30px;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+/* 手機版 */
+
+@media(max-width:600px){
+
+    .page{padding-top:25px}
+    .header h1{font-size:25px}
+
+    .info-card{
+        min-width:100px;
+        padding:10px 16px;
+    }
+
+    .hole-grid{gap:13px 8px}
+    .hole{height:112px}
+
+    .mole{
+        transform:translateY(115px) scale(.8);
+        transform-origin:bottom center;
+    }
+
+    .mole.show{
+        transform:translateY(0) scale(.8);
+    }
+
+    .mole.hit{
+        animation:dizzyMobile .45s ease forwards;
+    }
+
+    @keyframes dizzyMobile{
+        0%{transform:translateY(0) scale(.8) rotate(0)}
+        30%{transform:translateY(-15px) scale(.9) rotate(18deg)}
+        70%{transform:translateY(-5px) scale(.8) rotate(-15deg)}
+        100%{transform:translateY(115px) scale(.6) rotate(0)}
+    }
+
+    .game-panel{padding:15px 10px}
+    .main-btn{padding:13px 40px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="page">
+
+    <header class="header">
+        <h1>♡ 可愛打地鼠 ♡</h1>
+        <p>快來打地鼠，看看今天命運會選出什麼！</p>
+    </header>
+
+    <section class="info">
+
+        <div class="info-card">
+            <div class="info-label">剩餘時間</div>
+            <div class="info-value">
+                <span id="time">45</span><small> 秒</small>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-label">成功擊中</div>
+            <div class="info-value">
+                <span id="score">0</span><small> 次</small>
+            </div>
+        </div>
+
+    </section>
+
+    <main class="game-panel">
+
+        <div class="game-tip" id="tip">
+            點擊冒出來的小地鼠，就能獲得隨機驚喜！
+        </div>
+
+        <div class="hole-grid" id="holeGrid"></div>
+
+        <div class="controls">
+            <button class="main-btn" id="startBtn" onclick="startGame()">
+                開始遊戲 ♡
+            </button>
+        </div>
+
+    </main>
+
+</div>
+
+<!-- 最終結果 -->
+
+<div class="result-overlay" id="resultOverlay">
+
+    <div class="result-card">
+
+
+        <div class="result-title">✦ 今日命運揭曉 ✦</div>
+
+        <div class="result-subtitle">
+            小地鼠已經幫你做出選擇！
+        </div>
+
+        <div class="winner">
+
+            <div class="winner-label">你的最終結果</div>
+
+            <div class="winner-name" id="winnerName"></div>
+
+            <div class="winner-count" id="winnerCount"></div>
+
+        </div>
+
+        <button class="result-btn" onclick="closeResult()">
+            再玩一次
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+// ==============================
+// 1. 遊戲設定
+// ==============================
+
+const GAME_TIME = 45;
+const HOLE_COUNT = 9;
+
+// 最多同時出現幾隻地鼠
+const MAX_MOLES = 3;
+
+// 地鼠出現間隔
+const SPAWN_INTERVAL = 350;
+
+// 地鼠停留時間
+const MOLE_MIN_TIME = 900;
+const MOLE_MAX_TIME = 1400;
+
+// 擊中動畫時間
+const HIT_ANIMATION_TIME = 450;
+
+
+const COLORS = [
+    "#F48BA8",
+    "#91B8E8",
+    "#B69AE6",
+    "#91D6B5",
+    "#F4C66E",
+    "#E99BCB",
+    "#82C9D5",
+    "#D6A2E8",
+    "#F19C83",
+    "#A9B5E9",
+    "#E9B2A0",
+    "#9CCB93",
+    "#D9A6BC",
+    "#A4B7C8",
+    "#E5C18A"
+];
+
+// 固定內建十五個選項
+const options = [
+    "選項 1",
+    "選項 2",
+    "選項 3",
+    "選項 4",
+    "選項 5",
+    "選項 6",
+    "選項 7",
+    "選項 8",
+    "選項 9",
+    "選項 10",
+    "選項 11",
+    "選項 12",
+    "選項 13",
+    "選項 14",
+    "選項 15"
+];
+
+let colorMap = [];
+let counts = [];
+
+let score = 0;
+let timeLeft = GAME_TIME;
+let gameRunning = false;
+
+// 每個洞口獨立紀錄地鼠狀態
+let moleStates = [];
+
+// 每個洞口各自的消失計時器
+let moleTimers = [];
+
+// 遊戲計時器
+let gameTimer = null;
+
+// 地鼠生成計時器
+let spawnTimer = null;
+
+
+// ==============================
+// 2. 地鼠 HTML
+// ==============================
+
+const moleHTML = `
+    <div class="flash"></div>
+
+    <div class="stars">
+        <span>✦</span>
+        <span>✧</span>
+        <span>✦</span>
+    </div>
+
+    <div class="ear left"></div>
+    <div class="ear right"></div>
+
+    <div class="mole-body">
+
+        <div class="face">
+
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+
+            <div class="blush left"></div>
+            <div class="blush right"></div>
+
+            <div class="nose"></div>
+            <div class="mouth"></div>
+
+        </div>
+
+        <div class="hand left"></div>
+        <div class="hand right"></div>
+
+    </div>
+`;
+
+
+// ==============================
+// 3. 建立九個洞口
+// ==============================
+
+const holeGrid = document.getElementById("holeGrid");
+
+for(let i=0;i<HOLE_COUNT;i++){
+
+    const hole = document.createElement("div");
+
+    hole.className = "hole";
+
+    hole.innerHTML = `
+        <div class="hole-shadow"></div>
+
+        <div class="mole" id="mole${i}">
+            ${moleHTML}
+        </div>
+
+        <div class="hole-rim"></div>
+    `;
+
+    holeGrid.appendChild(hole);
+
+    hole.addEventListener("click",()=>{
+        hitMole(i);
+    });
+
+    moleStates[i] = {
+        active:false,
+        hit:false,
+        optionIndex:-1
+    };
+
+    moleTimers[i] = null;
+
+}
+
+
+// ==============================
+// 4. 隨機排序
+// ==============================
+
+function shuffle(array){
+
+    const result = [...array];
+
+    for(let i=result.length-1;i>0;i--){
+
+        const j = Math.floor(Math.random()*(i+1));
+
+        [result[i],result[j]] = [result[j],result[i]];
+
+    }
+
+    return result;
+
+}
+
+
+// ==============================
+// 5. 計算目前出現的地鼠數量
+// ==============================
+
+function getActiveMoleCount(){
+
+    return moleStates.filter(state=>state.active).length;
+
+}
+
+
+// ==============================
+// 6. 開始遊戲
+// ==============================
+
+function startGame(){
+
+    if(gameRunning)return;
+
+    clearInterval(gameTimer);
+    clearInterval(spawnTimer);
+
+    // 每局重新隨機分配顏色
+    colorMap = shuffle(COLORS).slice(0,options.length);
+
+    counts = new Array(options.length).fill(0);
+
+    score = 0;
+    timeLeft = GAME_TIME;
+    gameRunning = true;
+
+    document.getElementById("score").textContent = score;
+    document.getElementById("time").textContent = timeLeft;
+
+    document.getElementById("tip").textContent =
+        "地鼠出現了！快點擊牠們！";
+
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("startBtn").textContent = "遊戲進行中...";
+
+    document.getElementById("resultOverlay").classList.remove("active");
+
+    // 清除上一局所有地鼠
+    for(let i=0;i<HOLE_COUNT;i++){
+
+        clearTimeout(moleTimers[i]);
+
+        moleTimers[i] = null;
+
+        moleStates[i] = {
+            active:false,
+            hit:false,
+            optionIndex:-1
+        };
+
+        const mole = document.getElementById("mole"+i);
+
+        mole.classList.remove("show","hit");
+
+        mole.style.setProperty("--flash","transparent");
+
+    }
+
+    // 開始倒數
+    gameTimer = setInterval(()=>{
+
+        timeLeft--;
+
+        document.getElementById("time").textContent = timeLeft;
+
+        if(timeLeft<=0){
+            endGame();
+        }
+
+    },1000);
+
+    // 先生成第一隻
+    spawnMole();
+
+    // 持續生成地鼠
+    spawnTimer = setInterval(()=>{
+
+        if(!gameRunning)return;
+
+        if(getActiveMoleCount()<MAX_MOLES){
+
+            spawnMole();
+
+        }
+
+    },SPAWN_INTERVAL);
+
+}
+
+
+// ==============================
+// 7. 生成地鼠
+// ==============================
+
+function spawnMole(){
+
+    if(!gameRunning)return;
+
+    // 達到同時出現上限就停止生成
+    if(getActiveMoleCount()>=MAX_MOLES)return;
+
+    // 找出沒有地鼠的洞口
+    const availableHoles = [];
+
+    for(let i=0;i<HOLE_COUNT;i++){
+
+        if(!moleStates[i].active){
+            availableHoles.push(i);
+        }
+
+    }
+
+    if(availableHoles.length===0)return;
+
+    // 隨機選擇一個空洞
+    const holeIndex = availableHoles[
+        Math.floor(Math.random()*availableHoles.length)
+    ];
+
+    const mole = document.getElementById("mole"+holeIndex);
+
+    // 地鼠出現時就決定隱藏選項
+    const optionIndex = Math.floor(Math.random()*options.length);
+
+    const selectedColor = colorMap[optionIndex];
+
+    // 儲存這隻地鼠的獨立資料
+    moleStates[holeIndex] = {
+        active:true,
+        hit:false,
+        optionIndex:optionIndex
+    };
+
+    // 設定閃光顏色
+    mole.style.setProperty("--flash",selectedColor);
+
+    // 顯示地鼠
+    mole.classList.add("show");
+
+    // 每隻地鼠有自己的停留時間
+    const stayTime =
+        MOLE_MIN_TIME +
+        Math.random()*(MOLE_MAX_TIME-MOLE_MIN_TIME);
+
+    moleTimers[holeIndex] = setTimeout(()=>{
+
+        hideMole(holeIndex);
+
+    },stayTime);
+
+}
+
+
+// ==============================
+// 8. 隱藏指定地鼠
+// ==============================
+
+function hideMole(index){
+
+    const mole = document.getElementById("mole"+index);
+
+    clearTimeout(moleTimers[index]);
+
+    moleTimers[index] = null;
+
+    mole.classList.remove("show","hit");
+
+    moleStates[index] = {
+        active:false,
+        hit:false,
+        optionIndex:-1
+    };
+
+}
+
+
+// ==============================
+// 9. 擊中指定地鼠
+// ==============================
+
+function hitMole(index){
+
+    if(!gameRunning)return;
+
+    const state = moleStates[index];
+
+    // 只能擊中正在出現的地鼠
+    if(!state.active)return;
+
+    // 同一隻地鼠不能重複計分
+    if(state.hit)return;
+
+    const mole = document.getElementById("mole"+index);
+
+    // 停止這隻地鼠原本的消失計時
+    clearTimeout(moleTimers[index]);
+
+    // 標記已擊中
+    state.hit = true;
+
+    // 使用出現時就決定好的選項
+    counts[state.optionIndex]++;
+
+    // 更新總擊中次數
+    score++;
+
+    document.getElementById("score").textContent = score;
+
+    // 播放暈眩動畫
+    mole.classList.add("hit");
+
+    // 動畫完成後只收回這一隻地鼠
+    moleTimers[index] = setTimeout(()=>{
+
+        hideMole(index);
+
+    },HIT_ANIMATION_TIME);
+
+}
+
+
+// ==============================
+// 10. 結束遊戲
+// ==============================
+
+function endGame(){
+
+    if(!gameRunning)return;
+
+    gameRunning = false;
+
+    clearInterval(gameTimer);
+    clearInterval(spawnTimer);
+
+    // 清除全部地鼠
+    for(let i=0;i<HOLE_COUNT;i++){
+
+        clearTimeout(moleTimers[i]);
+
+        moleTimers[i] = null;
+
+        moleStates[i] = {
+            active:false,
+            hit:false,
+            optionIndex:-1
+        };
+
+        const mole = document.getElementById("mole"+i);
+
+        mole.classList.remove("show","hit");
+
+    }
+
+    document.getElementById("startBtn").disabled = false;
+
+    document.getElementById("startBtn").textContent = "重新開始 ♡";
+
+    document.getElementById("tip").textContent =
+        "遊戲結束！你的命運已經決定。";
+
+    // 找出最高次數
+    const maxCount = Math.max(...counts);
+
+    // 找出所有並列最高的選項
+    const winners = [];
+
+    counts.forEach((count,index)=>{
+
+        if(count===maxCount){
+            winners.push(index);
+        }
+
+    });
+
+    // 全部並列顯示
+    const winnerName = document.getElementById("winnerName");
+
+    winnerName.innerHTML = winners.map(index=>{
+
+        return `
+            <div class="winner-item">
+                ${escapeHTML(options[index])}
+            </div>
+        `;
+
+    }).join("");
+
+    document.getElementById("winnerCount").textContent =
+        maxCount===0
+        ? "本局沒有成功擊中地鼠"
+        : "每個並列選項成功擊中 "+maxCount+" 次";
+
+    document.getElementById("resultOverlay").classList.add("active");
+
+}
+
+
+// ==============================
+// 11. 安全處理文字
+// ==============================
+
+function escapeHTML(value){
+
+    return String(value).replace(/[&<>"']/g,function(char){
+
+        return {
+            "&":"&amp;",
+            "<":"&lt;",
+            ">":"&gt;",
+            '"':"&quot;",
+            "'":"&#39;"
+        }[char];
+
+    });
+
+}
+
+
+// ==============================
+// 12. 關閉結果
+// ==============================
+
+function closeResult(){
+
+    document.getElementById("resultOverlay").classList.remove("active");
+
+}
+
+</script>
+
+</body>
+</html>

@@ -36,7 +36,7 @@
     const tool = tools[toolId];
     const card = document.createElement('a');
     card.className = 'tool-select-card';
-    card.href = `${categoryId}/${categoryId}-${toolId}.html`;
+    card.href = `tool/${toolId}.html?topic=${encodeURIComponent(categoryId)}`;
     card.setAttribute('aria-label', `選擇${tool.name}`);
 
     const image = document.createElement('img');

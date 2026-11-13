@@ -25,28 +25,6 @@
   .pickme-tool-logo img { height: 42px; }
 }
 
-.tool-tutorial-launcher {
-  position: fixed;
-  right: 150px;
-  bottom: max(22px, env(safe-area-inset-bottom));
-  z-index: 8990;
-  padding: 12px 22px;
-  border: 3px solid #6b3a2e;
-  border-radius: 999px;
-  color: #6b3a2e;
-  background: #fffdf6;
-  box-shadow: 0 5px 0 #6b3a2e, 0 8px 20px rgba(80, 48, 40, .15);
-  font: 700 18px/1.2 'Huninn', 'Noto Sans TC', 'PingFang TC', sans-serif;
-  cursor: pointer;
-  transition: transform .2s, box-shadow .2s, background .2s;
-}
-.tool-tutorial-launcher:hover { transform: translateY(-3px); box-shadow: 0 8px 0 #6b3a2e; background: #fff0b8; }
-.tool-tutorial-launcher:active { transform: translateY(3px); box-shadow: 0 2px 0 #6b3a2e; }
-.tool-tutorial-launcher:focus-visible { outline: 4px dashed #6b3a2e; outline-offset: 4px; }
-@media (max-width: 460px) {
-  .tool-tutorial-launcher { right: 142px; }
-}
-
 .pickme-curtain-loader {
   position: fixed;
   inset: 0;

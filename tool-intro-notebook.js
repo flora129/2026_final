@@ -6,6 +6,13 @@
 
   const tool = match[1];
   const toolNames = { gacha: '扭蛋機', slot: '拉霸機', claw: '娃娃機', wheel: '轉盤', card: '抽卡機' };
+  const topicNames = {
+    travel: '假日去哪逛',
+    food: '三餐吃什麼',
+    draw: '畫畫沒靈感',
+    challenge: '社牛大挑戰',
+    outfit: '穿什麼',
+  };
   const limits = { slot: 3, claw: 5 };
   const defaultOptionCounts = { gacha: 10, slot: 3, claw: 5, wheel: 5 };
   const pageStateKey = `pickme_tool_notebook:${tool}:`;
@@ -13,6 +20,8 @@
   const pageStateId = user?.email ? `${pageStateKey}${encodeURIComponent(user.email)}` : null;
   const favorites = window.Auth?.customFavorites?.() || [];
   const params = new URLSearchParams(location.search);
+  const topicId = params.get('topic');
+  const topicFavoriteId = Object.hasOwn(topicNames, topicId) ? `category-${topicId}` : null;
   const favoriteId = params.get('favorite');
   const favoriteConfig = favoriteId ? favorites.find((item) => item.id === favoriteId && item.tool === tool) : null;
   let draftConfig = null;
@@ -181,7 +190,7 @@
       return !document.querySelector('#tutorialOverlay')?.classList.contains('show');
     }
     const card = document.querySelector('#tutorialCard, #tutorial-card');
-    return Boolean(card?.classList.contains('hidden'));
+    return !card || card.classList.contains('hidden');
   }
 
   function installTutorialObserver() {
@@ -203,13 +212,45 @@
 
   function revealButton() {
     synchronize();
+    const actions = document.createElement('div');
+    actions.className = 'tool-page-actions';
+
+    if (topicFavoriteId) {
+      const favoriteButton = document.createElement('button');
+      favoriteButton.className = 'tool-topic-favorite-button';
+      favoriteButton.type = 'button';
+      favoriteButton.setAttribute('aria-label', `收藏${topicNames[topicId]}`);
+
+      function updateTopicFavorite() {
+        const saved = Boolean(window.Auth?.user?.()
+          && window.Auth.favs().includes(`topic:${topicFavoriteId}`));
+        favoriteButton.classList.toggle('is-saved', saved);
+        favoriteButton.setAttribute('aria-pressed', String(saved));
+        favoriteButton.textContent = saved ? '★ 已收藏主題' : '☆ 收藏主題';
+      }
+
+      favoriteButton.addEventListener('click', () => {
+        if (!window.Auth?.user?.()) {
+          const next = `tool/${tool}.html?topic=${encodeURIComponent(topicId)}`;
+          location.href = `../login.html?next=${encodeURIComponent(next)}`;
+          return;
+        }
+        window.Auth.toggleTopicFav(topicFavoriteId);
+        updateTopicFavorite();
+      });
+      window.addEventListener('storage', updateTopicFavorite);
+      updateTopicFavorite();
+      actions.appendChild(favoriteButton);
+    }
+
     const button = document.createElement('button');
     button.className = 'tool-notebook-button';
     button.type = 'button';
     button.setAttribute('aria-label', `開啟${toolNames[tool]}自訂筆記本`);
     button.innerHTML = '<span aria-hidden="true">✎</span><span>自訂</span>';
     button.addEventListener('click', openNotebook);
-    document.body.appendChild(button);
+    actions.appendChild(button);
+    document.body.appendChild(actions);
     if ((favoriteConfig || draftConfig) && !openedFavorite) {
       openedFavorite = true;
       window.setTimeout(openNotebook, 120);
