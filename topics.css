@@ -202,7 +202,6 @@
   .food-back-title { margin: 5px 0 8px; font-size: 19px; }
   .food-shop { padding-top: 7px; font-size: 13px; line-height: 1.55; }
   .food-back .food-hint { margin: auto 0 0; }
-  .attraction-number { top: 12px; left: 12px; min-width: 60px; padding: 7px 9px; font-size: 25px; }
   .attraction-number::after { width: 20px; }
   .attraction-details { padding: 14px 13px 20px; }
   .attraction-details h3 { font-size: 17px; }

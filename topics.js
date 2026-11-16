@@ -27,9 +27,6 @@
       {"name":"烏來老街","address":"新北市烏來區烏來街","description":"「烏來老街」指的就是烏來街、瀑布路與環山道路一帶，店家招牌樣式統一，看起相當整齊…","image":"https://newtaipei.travel/image/2287/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
       {"name":"碧潭風景區","address":"新北市新店區新店路","description":"昔為「台灣八景十二勝」之一的碧潭，其命名原因有多種說法，有一說是因為湖水澄碧，另有一說是水岸邊壯麗的石壁…","image":"https://newtaipei.travel/image/25235/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
       {"name":"坪林茶業博物館","address":"新北市坪林區水德里水聳淒坑19-1號","description":"於民國86年成立的坪林茶業博物館， 坐落於坪林區北勢溪畔，佔地近3公頃， 是一座閩南安溪風格的四合院建築…","image":"https://newtaipei.travel/image/181/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
-
-      {"name":"石碇千島湖","address":"新北市石碇區千島湖（建議依地圖確認入口）","description":"石碇千島湖位於翡翠水庫周邊山區，湖灣與山巒交錯，從高處可欣賞層疊水岸景色。","image":"https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Qiandao_Lake%2C_Shiding_District%2C_New_Taipei_City_20170121.jpg/960px-Qiandao_Lake%2C_Shiding_District%2C_New_Taipei_City_20170121.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail","imageCredit":{"author":"Wei-Te Wong","license":"CC BY-SA 2.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Qiandao_Lake,_Shiding_District,_New_Taipei_City_20170121.jpg","creditText":"圖片：Wei-Te Wong · CC BY-SA 2.0"}},
-
       {"name":"石碇千島湖","address":"新北市石碇區永安里","description":"茶園環繞的寧靜湖泊，設有多處觀景台和步道。","image":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKvpmQPFTfUr5Qh8WaGlqQfLdp6oDF-srTF27eUAJRFw&s","imageCredit":{"author":"新北市觀光旅遊網","sourceUrl":"https://newtaipei.travel/zh-tw/attractions/detail/403133","creditText":"圖片提供：新北市觀光旅遊網"}},
 
       {"name":"深坑老街","address":"新北市深坑區深坑街","description":"深坑，一個距離有點遠又不太遠的遠離市區商圈，是個半日遊的好選擇！","image":"https://newtaipei.travel/image/825/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
@@ -37,11 +34,7 @@
       {"name":"林本源園邸","address":"新北市板橋區西門街9號","description":"現存超過百年的林本源園邸，為清朝時期林家的租館，後由林國華、林國芳兩兄弟擴建，經過戰火洗禮與百年風霜…","image":"https://newtaipei.travel/image/25162/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
       {"name":"十分寮天燈廣場","address":"新北市平溪區南山里南山坪136號","description":"：每年元宵節「平溪天燈節」時，這裡會變身為大型活動主舞台與集體放天燈的活動場地。","image":"https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTXflGT2TmINcvxtux5oZ1M-l-wtj9fBybBBVy0dCwaqFNYX44UNx-JdTd_&s=10","imageCredit":{"author":"新北市觀光旅遊網","sourceUrl":"https://newtaipei.travel/zh-tw/news/detail/2294","creditText":"圖片提供：新北市觀光旅遊網"}},
       {"name":"朱銘美術館","address":"新北市金山區西勢湖2號","description":"朱銘美術館位於新北市金山區北海岸山間，隸屬於財團法人朱銘文教基金會，創辦人朱銘以12年的時間打造這座美術館…","image":"https://map.culture.tw/com/upload/baseFImage/2025-05-06/c91c9fd1-8b0c-4668-bd15-7dae0441e8d9/01_朱銘美術館正門.jpg","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}},
-
-      {"name":"淡蘭古道","address":"新北市石碇區石碇西街","description":"目前未找到可可靠配對的官方景點介紹，請以地方政府或景點官方資訊為準。","image":"https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/%E6%B7%A1%E8%98%AD%E5%8F%A4%E9%81%93%E7%A4%BA%E6%84%8F%E5%9C%96.jpg/960px-%E6%B7%A1%E8%98%AD%E5%8F%A4%E9%81%93%E7%A4%BA%E6%84%8F%E5%9C%96.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail","imageCredit":{"author":"傑利小子．新北市政府觀光旅遊局","license":"Attribution","sourceUrl":"https://commons.wikimedia.org/wiki/File:%E6%B7%A1%E8%98%AD%E5%8F%A4%E9%81%93%E7%A4%BA%E6%84%8F%E5%9C%96.jpg","creditText":"圖片：傑利小子．新北市政府觀光旅遊局 · Attribution"}},
-
       {"name":"淡蘭古道","address":"223新北市石碇區石碇西街","description":"淡蘭古道旁的遮蔭步道，設有可欣賞山景的涼亭與休息區。","image":"https://www.peopo.org/files/public/styles/wide/public/2026-02/%E5%A4%A72026_01_31_17_36_12_IMG_8441.jpeg.webp?itok=angsKEP6","imageCredit":{"author":"PeoPo公民新聞","sourceUrl":"https://www.peopo.org/news/836639","creditText":"圖片提供：PeoPo公民新聞"}},
-
       {"name":"三貂角燈塔","address":"新北市貢寮區福連里馬崗街38號","description":"建於1935年（民國24年）的三貂角燈塔，是台灣的極東點，也是每日迎接第一道曙光的地方，燈塔內部設有展示館…","image":"https://newtaipei.travel/image/25317/640x480","imageCredit":{"author":"交通部觀光署","license":"政府資料開放授權條款-第1版","sourceUrl":"https://data.gov.tw/dataset/7777","creditText":"圖片提供：交通部觀光署（政府資料開放授權條款-第1版）"}}
     ],
     "基隆市": [
@@ -865,10 +858,7 @@
     figure.appendChild(image);
     stamp.append(figure);
 
-    const number = document.createElement('span');
-    number.className = 'attraction-number';
-    number.textContent = String(index + 1).padStart(2, '0');
-    stamp.appendChild(number);
+
 
     const pullout = document.createElement('div');
     pullout.className = 'attraction-pullout';
@@ -936,7 +926,6 @@
     foods.forEach((food, index) => foodGrid.appendChild(createFoodCard(food, index, city)));
     foodSection.hidden = false;
     attractionSection.hidden = false;
-    filterHint.textContent = `${selectedRegion}・${city}｜12 種美食品項・25 個景點`;
   }
 
   citySelect.addEventListener('change', () => {
