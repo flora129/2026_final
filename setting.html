@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokémon Field Notebook</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Kalam:wght@400;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+:root{--ink:#33334b;--muted:#85869d;--cyan:#20d5e8;--paper:#fffaff;--pink:#f7d8e7;--line:#dce8ef;--purple:#7469a4}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:0;background:#20c6df;font-family:'DM Sans','Noto Sans TC',sans-serif;color:var(--ink);display:grid;place-items:center}
+button{font:inherit;cursor:pointer;color:inherit}
+.screen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  aspect-ratio: auto;
+  min-height: 0;
+  max-height: none;
+  position: relative;
+  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  background: radial-gradient(
+    ellipse at 52% 45%,
+    #a7fbff 0,
+    #43e8f0 35%,
+    #16c6e4 72%,
+    #0aa5d0 100%
+  );
+  box-shadow: none;
+}
+
+.info-paper {
+  position: relative;
+  z-index: 5;
+  align-self: stretch;
+  margin: 7px 3px 7px 0;
+  padding: 22px 17px 18px 25px;
+  background: linear-gradient(
+    90deg,
+    #f6eaf2 0 9px,
+    #fffafd 9px 100%
+  );
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  transform: rotate(.5deg);
+  transform-origin: 50% 50%;
+  animation: paper-spin-in 1s cubic-bezier(.18,.75,.22,1.15) .35s both;
+}
+.screen:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 20%,#fff9 0 2px,transparent 3px),radial-gradient(circle at 70% 33%,#fff9 0 2px,transparent 3px),radial-gradient(circle at 42% 72%,#fff8 0 2px,transparent 3px),linear-gradient(110deg,transparent 20%,#ffffff18 50%,transparent 78%);background-size:120px 110px,160px 130px,190px 150px,100% 100%;pointer-events:none}
+.topbar{position:absolute;z-index:10;left:24px;right:24px;top:15px;height:66px;display:flex;align-items:center;gap:22px}
+.back{border:0;border-radius:12px;background:#f9e8f4;color:#625c84;padding:10px 17px;box-shadow:0 3px 0 #d6c5df;font-size:12px;font-weight:700}
+.workspace{position:absolute;inset:88px 20px 20px;display:grid;grid-template-columns:158px minmax(0,1fr) 438px;gap:15px;align-items:stretch}
+/* left notebook index */
+.index-book{position:relative;z-index:4;margin:20px 0 20px 0;padding:22px 10px 18px 22px;background:linear-gradient(90deg,#f4eaf6 0,#fffafd 18%,#fffafd 100%);border:1px solid #e5d7e9;border-radius:5px 17px 17px 5px;box-shadow:5px 7px 0 #258da66b,8px 12px 22px #126e8b35;display:flex;flex-direction:column;align-self:start;height:max-content;min-width:0;animation:index-drop .9s cubic-bezier(.2,.8,.25,1.15) .15s both}
+.index-book:before{content:"";position:absolute;left:9px;top:12px;bottom:12px;width:8px;border-left:2px solid #d6c3dc;border-right:1px solid #eaddea;background:repeating-linear-gradient(to bottom,transparent 0 29px,#cbb8d2 30px 32px,transparent 33px 59px)}
+.index-kicker{font:700 10px 'Kalam',cursive;letter-spacing:2px;color:#a18ca8;margin:0 0 5px 3px}.index-heading{font:700 17px 'Kalam',cursive;color:#645c83;margin:0 0 19px 3px;line-height:1.1}.index-heading small{display:block;font:9px 'DM Sans',sans-serif;color:#aaa0b1;letter-spacing:1px;margin-top:5px}
+.bookmarks{display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.bookmark{position:relative;border:0;text-align:left;min-height:49px;padding:8px 7px 8px 11px;border-radius:0 10px 10px 0;background:#f7dce9;box-shadow:2px 3px 0 #e4c4d5;display:flex;align-items:center;gap:7px;transition:transform .25s,box-shadow .25s;isolation:isolate}
+.bookmark:nth-child(2){background:#d9f0eb;box-shadow:2px 3px 0 #beded7}.bookmark:nth-child(3){background:#e6e0f5;box-shadow:2px 3px 0 #d0c7e5}.bookmark:nth-child(4){background:#faedcf;box-shadow:2px 3px 0 #e8d9b6}
+.bookmark:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#d99ab9}.bookmark:nth-child(2):before{background:#8fc9b8}.bookmark:nth-child(3):before{background:#aa9bd0}.bookmark:nth-child(4):before{background:#d7b86f}
+.bookmark .num{font:700 10px 'Kalam',cursive;color:#9b8298}.bookmark .label{font:700 11px 'Kalam',cursive;line-height:1.1;flex:1}.bookmark .symbol{font-size:13px;color:#a18ca8}
+.bookmark.active{transform:translateX(12px);box-shadow:5px 5px 0 #c8b7d0;z-index:2;filter:saturate(1.12)}.bookmark.active:after{content:"";position:absolute;right:-10px;top:0;bottom:0;width:11px;background:inherit;clip-path:polygon(0 0,100% 12%,100% 88%,0 100%)}
+/* center stage */
+.center{position:relative;min-width:0;display:flex;flex-direction:column;padding:3px 2px 0}
+.stage{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:20px;background:radial-gradient(ellipse at 50% 45%,#e4ffff88 0,#ffffff15 47%,#007db52b 100%);border:1px solid #ffffff90;box-shadow:inset 0 0 35px #ffffff45}
+.stage:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#ffffff12 0 68%,#ffffff52 69%,#ffffff08 72%),radial-gradient(ellipse at 50% 100%,#fff7 0,transparent 52%);pointer-events:none}
+.stage-glow{position:absolute;width:60%;height:70%;left:20%;top:12%;background:#eaffff70;filter:blur(45px);border-radius:50%}
+.floor{position:absolute;bottom:-12%;left:-10%;width:120%;height:30%;border-radius:50%;background:linear-gradient(180deg,#a8f6f3a8,#58d4e7a8);border-top:2px solid #ffffff9c;transform:perspective(300px) rotateX(12deg)}
+.creature{position:absolute;z-index:3;width:min(66%,430px);height:85%;left:50%;top:49%;transform:translate(-50%,-50%);animation:creature-emerge 1.15s cubic-bezier(.2,.8,.25,1) .65s both,float 3.5s ease-in-out 1.8s infinite;filter:drop-shadow(0 18px 13px #075f8b55);transition:opacity .22s}
+.creature svg{width:100%;height:100%;overflow:visible}@keyframes float{0%,100%{margin-top:0}50%{margin-top:-12px}}
+.summon-light{position:absolute;z-index:2;left:50%;top:49%;width:min(58%,360px);aspect-ratio:1;border-radius:50%;translate:-50% -50%;opacity:0;background:radial-gradient(circle,#fff 0 5%,#eaffffed 13%,#9bfaff91 35%,#7ceaff00 70%);filter:drop-shadow(0 0 24px #fff);animation:summon-bloom 1.55s ease-out .35s both}
+.summon-light:before,.summon-light:after{content:"";position:absolute;inset:12%;border:2px solid #fff;border-radius:50%;box-shadow:0 0 18px #fff;animation:summon-ring 1.2s ease-out .4s both}
+.summon-light:after{inset:25%;animation-delay:.55s}
+@keyframes summon-bloom{0%{opacity:0;scale:.12}22%{opacity:1}100%{opacity:0;scale:1.55}}
+@keyframes summon-ring{0%{opacity:0;scale:.35}25%{opacity:.9}100%{opacity:0;scale:1.5}}
+@keyframes creature-emerge{0%{opacity:0;scale:.12;filter:brightness(2.4) drop-shadow(0 0 28px #fff)}55%{opacity:1;scale:1.08;filter:brightness(1.35) drop-shadow(0 0 18px #fff)}100%{opacity:1;scale:1;filter:drop-shadow(0 18px 13px #075f8b55)}}
+.sparkle{position:absolute;z-index:2;color:#fff;font-size:22px;text-shadow:0 0 12px #fff;animation:shine 1.9s ease-in-out infinite alternate}.sp1{left:15%;top:28%}.sp2{right:14%;top:42%;animation-delay:.7s}.sp3{left:28%;bottom:22%;animation-delay:1.1s}@keyframes shine{to{opacity:.25;transform:scale(.65) rotate(30deg)}}
+.stage-bottom{position:absolute;z-index:4;left:16px;right:16px;bottom:13px;display:flex;justify-content:space-between;align-items:center;font:11px 'Kalam',cursive;color:#087b99}.stage-chip{background:#ffffffc9;border:1px solid #fff;border-radius:20px;padding:5px 10px;box-shadow:0 2px 5px #168aa033}
+/* right paper card */
+.info-paper{position:relative;z-index:5;align-self:stretch;margin:7px 3px 7px 0;padding:22px 17px 18px 25px;background:linear-gradient(90deg,#f6eaf2 0 9px,#fffafd 9px 100%);border:1px solid #e7d8e8;border-radius:7px 19px 19px 7px;box-shadow:6px 8px 0 #1986a45c,0 14px 26px #0d739332;overflow:hidden;transform:rotate(.5deg);transform-origin:50% 50%;animation:paper-spin-in 1s cubic-bezier(.18,.75,.22,1.15) .35s both}
+@keyframes index-drop{0%{opacity:0;translate:0 -115%;rotate:-5deg}75%{opacity:1;translate:0 5%;rotate:1deg}100%{opacity:1;translate:0 0;rotate:0deg}}
+@keyframes paper-spin-in{0%{opacity:0;translate:115% 0;rotate:32deg;scale:.72}72%{opacity:1;translate:-5% 0;rotate:-5deg;scale:1.03}100%{opacity:1;translate:0 0;rotate:0deg;scale:1}}
+.info-paper:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0 27px,#dce9ef 28px 29px);opacity:.68;pointer-events:none}.info-paper:after{content:"";position:absolute;left:27px;top:0;bottom:0;width:1px;background:#edbdce;pointer-events:none}
+.paper-clip{position:absolute;z-index:3;right:18px;top:-9px;width:23px;height:42px;border:4px solid #a8a6ae;border-bottom:0;border-radius:14px 14px 0 0;transform:rotate(8deg)}
+.paper-content{position:relative;z-index:2;padding-left:13px;height:100%;overflow:auto;scrollbar-width:thin;scrollbar-color:#d9c5da transparent}
+.paper-topline{display:flex;justify-content:space-between;align-items:center;border-bottom:1px dashed #d6c8d8;padding:0 0 10px;margin-bottom:12px;color:#a18da7;font:700 9px 'Kalam',cursive;letter-spacing:1.5px}
+.type-tags{display:flex;gap:5px;margin-bottom:6px}.type-tag{font-size:8px;font-weight:800;color:#fff;background:#5b79a8;border-radius:10px;padding:3px 7px}.type-tag.secondary{background:#d98b9c}
+.name-line{display:flex;justify-content:space-between;align-items:center;gap:5px}.name-line h1{font:700 23px 'Kalam','Noto Sans TC',cursive;color:#3e3c54;margin:0;line-height:1.1}.dex-no{font:700 9px 'DM Sans',sans-serif;background:#f5e1ed;border-radius:8px;padding:4px 6px;color:#9a6688;white-space:nowrap}
+.level-line{font-size:9px;color:#8d8498;margin:5px 0 12px}.hp-head{display:flex;justify-content:space-between;font-size:9px;color:#77758b;margin-bottom:5px}.hp-track{height:9px;border-radius:12px;background:#eee8ec;overflow:hidden;border:1px solid #e4dce2}.hp-fill{height:100%;width:82%;background:linear-gradient(90deg,#8edb9d,#b8e7a5);border-radius:12px;transition:width .4s}
+.description{font-size:9px;line-height:1.8;color:#898397;margin:11px 0 8px}.section-label{font:700 12px 'Kalam',cursive;color:#756b91;margin:12px 0 2px}.radar-area{display:flex;justify-content:center;align-items:center;margin:0 auto 1px}.radar{width:170px;height:145px;overflow:visible}.radar .grid{fill:none;stroke:#dcd4e5;stroke-width:1.2}.radar .shape{fill:#b9edb588;stroke:#76c98e;stroke-width:2}.radar text{font:8px 'DM Sans',sans-serif;fill:#817991}.stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:0}.stat{background:#f7eff4d9;border:1px solid #f0e4eb;border-radius:7px;padding:6px 7px;color:#898196;font-size:8px}.stat b{float:right;color:#4d4b64;font-size:9px}.paper-stamp{position:absolute;right:18px;bottom:12px;color:#b49eae;font:10px 'Kalam',cursive}
+/* changing pages */
+.tab-page{display:none;animation:pageIn .28s ease}.tab-page.active{display:block}@keyframes pageIn{from{opacity:0;transform:translateX(9px)}to{opacity:1;transform:none}}
+.subheading{font:700 19px 'Kalam','Noto Sans TC',cursive;color:#625a7b;margin:8px 0 4px}.subnote{font:10px 'Kalam',sans-serif;color:#9d91a2;margin:0 0 13px}.move{display:flex;gap:9px;align-items:center;padding:9px 7px;margin:8px 0;background:#fff8fc;border:1px dashed #e5d4e2;border-radius:10px}.move-icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#f7dfeb;display:grid;place-items:center;font-size:17px}.move:nth-of-type(3) .move-icon{background:#def2ed}.move:nth-of-type(4) .move-icon{background:#e9e3f6}.move b{display:block;font-size:10px;color:#55516b}.move small{display:block;font-size:8px;color:#9a91a1;margin-top:3px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.detail{padding:9px 8px;background:#fff8fc;border:1px dashed #e6d9e5;border-radius:8px;font-size:8px;color:#95899a}.detail b{display:block;font:700 13px 'Kalam',cursive;color:#5d5874;margin-top:4px}.memo{padding:12px 10px;background:#fff9ed;border-left:3px solid #e8b7c9;color:#746d83;font:13px/2 'Kalam','Noto Sans TC',cursive;min-height:175px;box-shadow:2px 3px 8px #cdb8c322}.memo-meta{margin-top:12px;font-size:9px;color:#93899b}
+@media(max-width:900px){body{padding:0;background:#20c6df}.screen{aspect-ratio:auto;min-height:100vh;min-height:100dvh;max-height:none;border:12px solid #20c6df;border-radius:0}.topbar{left:12px;right:12px;gap:9px}.workspace{inset:75px 10px 12px;grid-template-columns:112px minmax(180px,1fr);grid-template-rows:minmax(390px,1fr) auto;gap:10px}.index-book{grid-row:1 / 3;margin:10px 0;padding:17px 7px 12px 17px}.index-heading{font-size:14px}.bookmark{min-height:43px;padding:7px 4px 7px 7px;gap:4px}.bookmark .label{font-size:10px}.bookmark .num{font-size:8px}.center{min-height:390px}.info-paper{grid-column:2;margin:0 2px 8px;min-height:390px}.creature{width:min(75%,360px);height:82%}}
+@media(max-width:520px){.workspace{grid-template-columns:88px minmax(0,1fr);grid-template-rows:410px auto}.index-book{padding-left:15px}.index-heading{font-size:12px}.index-heading small{font-size:7px}.bookmark{min-height:41px}.bookmark .num{display:none}.bookmark .label{font-size:9px}.bookmark .symbol{font-size:10px}.center-heading{padding:0 3px}.center-heading strong{font-size:11px}.center-heading span{font-size:9px}.stage{border-radius:13px}.creature{width:90%;height:78%}.stage-bottom{left:7px;right:7px;font-size:8px}.stage-chip{padding:4px 6px}.info-paper{min-height:410px;padding:17px 11px 15px 18px}.paper-content{padding-left:10px}.name-line h1{font-size:20px}.radar{width:150px}.paper-stamp{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.index-book,.info-paper,.creature,.summon-light,.summon-light:before,.summon-light:after{animation:none!important}.creature{opacity:1;scale:1}.summon-light{display:none}}
+</style></head>
+<body>
+<div class="screen">
+ <header class="topbar"><button class="back" id="backBtn">←　Back</button></header>
+ <main class="workspace">
+  <aside class="index-book"><div class="index-kicker">MY NOTEBOOK</div><h2 class="index-heading">INDEX</h2>
+   <nav class="bookmarks">
+    <button class="bookmark active" data-page="summary"><span class="label">Summary</span></button>
+    <button class="bookmark" data-page="stats"><span class="label">Stats</span></button>
+    <button class="bookmark" data-page="moves"><span class="label">Moves</span></button>
+    <button class="bookmark" data-page="details"><span class="label">Details</span></button>
+    <button class="bookmark" data-page="notes"><span class="label">Notes</span></button>
+   </nav>
+  </aside>
+  <section class="center">
+   <div class="stage"><div class="stage-glow"></div><div class="floor"></div><span class="sparkle sp1">✦</span><span class="sparkle sp2">✧</span><span class="sparkle sp3">✦</span><div class="summon-light" aria-hidden="true"></div>
+    <div class="creature" id="creature">
+     <!-- Original hand-drawn SVG creature; replaceable with custom artwork -->
+     <svg viewBox="0 0 440 500" role="img" aria-label="原創藍紫色飛龍">
+      <defs><linearGradient id="dragonBody" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a9b8e8"/><stop offset=".5" stop-color="#7588bc"/><stop offset="1" stop-color="#455b91"/></linearGradient><linearGradient id="dragonWing" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#68d9ed"/><stop offset="1" stop-color="#168fc4"/></linearGradient><linearGradient id="dragonBelly" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d9fbfa"/><stop offset="1" stop-color="#77d4e7"/></linearGradient></defs>
+      <!-- tail --> <path d="M254 337 Q315 350 321 410 Q329 450 370 432 Q345 408 365 382 Q309 370 293 319" fill="#526b9e" stroke="#354d7b" stroke-width="8"/><path d="M352 391 Q391 374 398 403 Q390 431 370 435 Q373 412 352 391" fill="#e8c9bd" stroke="#354d7b" stroke-width="6"/>
+      <!-- wings --> <path d="M174 184 Q100 101 23 125 Q61 143 77 193 Q46 176 17 207 Q81 218 151 284 L190 263Z" fill="url(#dragonWing)" stroke="#3c5b91" stroke-width="8"/><path d="M266 184 Q340 101 417 125 Q379 143 363 193 Q394 176 423 207 Q359 218 289 284 L250 263Z" fill="url(#dragonWing)" stroke="#3c5b91" stroke-width="8"/><path d="M167 194 Q103 153 49 151 M162 220 Q104 199 43 211 M273 194 Q337 153 391 151 M278 220 Q336 199 397 211" fill="none" stroke="#b8f7ff" stroke-width="5"/>
+      <!-- horns --> <path d="M155 111 Q119 37 145 16 Q177 52 184 112 M285 111 Q321 37 295 16 Q263 52 256 112" fill="#f0d8c8" stroke="#435987" stroke-width="7"/>
+      <!-- legs --> <path d="M159 332 Q145 386 142 425 Q141 443 178 439 L205 421 L197 367 M281 332 Q295 386 298 425 Q299 443 262 439 L235 421 L243 367" fill="#6579ad" stroke="#3f5689" stroke-width="8"/><path d="M145 420 Q166 409 185 426 L202 443 Q198 457 182 455 L134 449 Q120 442 145 420 M295 420 Q274 409 255 426 L238 443 Q242 457 258 455 L306 449 Q320 442 295 420" fill="#ead0c5" stroke="#3f5689" stroke-width="6"/>
+      <!-- arms --> <path d="M151 231 Q111 245 112 291 L91 316 Q83 333 101 338 L139 307 Q165 277 172 252 M289 231 Q329 245 328 291 L349 316 Q357 333 339 338 L301 307 Q275 277 268 252" fill="url(#dragonBody)" stroke="#40578a" stroke-width="8"/>
+      <!-- body --> <path d="M151 169 Q220 133 289 169 Q311 237 295 326 Q281 385 220 394 Q159 385 145 326 Q129 237 151 169Z" fill="url(#dragonBody)" stroke="#40578a" stroke-width="9"/><path d="M174 220 Q220 194 266 220 Q282 281 264 345 Q220 375 176 345 Q158 281 174 220Z" fill="url(#dragonBelly)" stroke="#6998b7" stroke-width="5"/>
+      <!-- head --> <path d="M132 130 Q128 66 220 64 Q312 66 308 130 L287 213 Q263 247 220 247 Q177 247 153 213Z" fill="url(#dragonBody)" stroke="#40578a" stroke-width="9"/><path d="M149 162 Q174 143 197 164 Q193 190 169 194 Q150 189 149 162 M243 164 Q266 143 291 162 Q290 189 271 194 Q247 190 243 164" fill="#fff" stroke="#40578a" stroke-width="4"/><ellipse cx="174" cy="173" rx="8" ry="13" fill="#273c69"/><ellipse cx="266" cy="173" rx="8" ry="13" fill="#273c69"/><circle cx="177" cy="169" r="3" fill="#fff"/><circle cx="269" cy="169" r="3" fill="#fff"/><path d="M199 212 Q220 226 241 212" fill="none" stroke="#354b78" stroke-width="5"/><path d="M153 204 Q137 211 145 224 M287 204 Q303 211 295 224" fill="none" stroke="#e9aeba" stroke-width="7" stroke-linecap="round"/>
+     </svg>
+    </div>
+   </div>
+  </section>
+  <aside class="info-paper"><div class="paper-clip"></div><div class="paper-content">
+   <section class="tab-page active" id="summary"><div class="type-tags"><span class="type-tag" id="typeA">DRAGON</span><span class="type-tag secondary" id="typeB">FLYING</span></div><div class="name-line"><h1 id="pokemonName">Charizard</h1><span class="dex-no" id="dexNo">NO.001</span></div><div class="level-line" id="levelLine">Lv. 48　・　WILD SPECIMEN</div><div class="hp-head"><span>HP</span><b id="hpText">128 / 156</b></div><div class="hp-track"><div class="hp-fill" id="hpFill"></div></div><p class="description" id="description">A powerful flying creature that soars high above the clouds. Its wings catch the warm air as it glides across the sky.</p><div class="section-label">✧ Ability chart</div><div class="radar-area"><svg class="radar" viewBox="0 0 200 165"><g transform="translate(100 80)"><polygon class="grid" points="0,-62 59,-19 36,50 -36,50 -59,-19"/><polygon class="grid" points="0,-43 41,-13 25,35 -25,35 -41,-13"/><polygon class="grid" points="0,-24 23,-7 14,19 -14,19 -23,-7"/><polygon class="shape" id="radarShape" points="0,-51 46,-15 27,36 -24,32 -48,-15"/><text x="-10" y="-69">ATK</text><text x="64" y="-17">DEF</text><text x="39" y="63">SPD</text><text x="-54" y="63">INT</text><text x="-78" y="-17">HP</text></g></svg></div><div class="stats"><div class="stat">Attack <b id="atk">92</b></div><div class="stat">Defense <b id="def">76</b></div><div class="stat">Speed <b id="spd">88</b></div><div class="stat">Special <b id="special">81</b></div></div></section>
+   <section class="tab-page" id="stats"><h2 class="subheading">◈ Battle Statistics</h2><p class="subnote">能力值紀錄 / BASE ATTRIBUTES</p><div class="stats"><div class="stat">HP <b id="statHp">128</b></div><div class="stat">Attack <b id="statAtk">92</b></div><div class="stat">Defense <b id="statDef">76</b></div><div class="stat">Speed <b id="statSpd">88</b></div><div class="stat">Special Attack <b>104</b></div><div class="stat">Special Defense <b>82</b></div></div><div class="section-label">✦ Trainer's observation</div><p class="description">數值以此展示頁的原創角色資料為準，可依照你的寶可夢設定自行修改。</p></section>
+   <section class="tab-page" id="moves"><h2 class="subheading">✧ Moves / 技能</h2><p class="subnote">KNOWN MOVES & SPECIAL ABILITIES</p><div class="move"><div class="move-icon">🔥</div><div><b>星火吐息</b><small>FIRE　・　特殊攻擊　・　威力 80</small></div></div><div class="move"><div class="move-icon">🌪️</div><div><b>疾風爪擊</b><small>FLYING　・　物理攻擊　・　威力 65</small></div></div><div class="move"><div class="move-icon">✨</div><div><b>守護光環</b><small>STATUS　・　防禦技能</small></div></div><div class="move"><div class="move-icon">💫</div><div><b>流星俯衝</b><small>DRAGON　・　終結技能　・　威力 110</small></div></div></section>
+   <section class="tab-page" id="details"><h2 class="subheading">⌕ Specimen Details</h2><p class="subnote">個體資料 / FIELD IDENTIFICATION</p><div class="detail-grid"><div class="detail">身高<b id="height">1.7 m</b></div><div class="detail">體重<b id="weight">68.0 kg</b></div><div class="detail">分類<b>天空守護者</b></div><div class="detail">性別<b>未知</b></div><div class="detail">棲息地<b>火山山脈</b></div><div class="detail">性格<b>勇敢</b></div><div class="detail">觀察編號<b id="detailNo">001</b></div><div class="detail">稀有度<b>★★★★☆</b></div></div></section>
+   <section class="tab-page" id="notes"><h2 class="subheading">♡ Field Notes</h2><p class="subnote">研究員手寫觀察紀錄</p><div class="memo" id="memo">今天的焰翼龍比平常更有精神。牠在陽光下拍動翅膀，似乎很喜歡高處的風。下次觀察時記得帶一些莓果！</div><div class="memo-meta">DATE　<span id="memoDate"></span><br>RESEARCHER　NO. 07</div></section>
+  </div></aside>
+ </main>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+function setPage(id){
+  const target=document.getElementById(id);
+  if(!target) return;
+  document.querySelectorAll('.bookmark').forEach(button=>{
+    button.classList.toggle('active',button.dataset.page===id);
+  });
+  document.querySelectorAll('.tab-page').forEach(page=>{
+    page.classList.toggle('active',page.id===id);
+  });
+}
+document.querySelectorAll('.bookmark').forEach(button=>{
+  button.addEventListener('click',()=>setPage(button.dataset.page));
+});
+$('backBtn').addEventListener('click',()=>setPage('summary'));
+const d=new Date();$('memoDate').textContent=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+</script></body></html>
